@@ -14,9 +14,18 @@ Installation
 ------------
 This package should be installed only on windows systems because of ArcGIS (Arcpy) limitation.
 
+
+ArcGIS Desktop and Numpy compability (see https://support.esri.com/en/technical-article/000013224): 
+
+*  10.7.1 - Python 2.7.16 and NumPy 1.9.3
+*  10.7 - Python 2.7.15 and NumPy 1.9.3
+*  10.6.1 - Python 2.7.14 and NumPy 1.9.3
+*  10.6 - Python 2.7.14 and NumPy 1.9.3
+*  10.5.1 - Python 2.7.13 and NumPy 1.9.3
+*  10.5 - Python 2.7.12 and NumPy 1.9.3
+
 Install required packages::
 
-    pip install numpy>=1.12.0
     pip install psycopg2>=2.6.2
     pip install pyyaml>=3.12
     pip install archook==1.1.0
@@ -93,7 +102,9 @@ Command line options::
 
     fgdb2postgis -h
     fgdb2postgis -f filegdb
-                 -p postgis
+                 -p database name
+                 --a_srs=a_srs
+                 --t_srs=t_srs
                  --host=host
                  --port=port
                  --user=user

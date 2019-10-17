@@ -12,7 +12,7 @@ setup(
     package_data={'fgdb2postgis': ['sql_files/*.sql']},
     include_package_data=True,
     install_requires=[
-		'numpy>=1.12.0',
+		'numpy>=1.9.3',
 		'psycopg2>=2.6.2',
         'ruamel.yaml>=0.15.35',
 		'archook==1.1.0',
