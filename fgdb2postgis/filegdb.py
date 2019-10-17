@@ -7,7 +7,7 @@
  # Copyright: Cartologic 2017
  #
  ##
-import os
+import os, logging
 # import yaml
 from ruamel.yaml import YAML
 
@@ -19,7 +19,7 @@ try:
 	archook.get_arcpy()
 	import arcpy
 except ImportError:
-	print "Unable to locate arcpy module..."
+	logging.debug( "Unable to locate arcpy module...")
 	exit(1)
 
 yaml = YAML()
@@ -62,13 +62,13 @@ class FileGDB:
 		self.yamlfile_path = yamlfile_path
 
 	def info(self):
-		print "\nFileGDB Info:"
-		print " Workspace: %s (%s)" % (self.workspace_path, self.a_srs)
-		print " Sqlfolder: %s" % self.sqlfolder_path
-		print " Yamlfile: %s" % self.yamlfile_path
+		logging.debug( "\nFileGDB Info:" )
+		logging.debug( " Workspace: %s (%s)" % (self.workspace_path, self.a_srs) )
+		logging.debug( " Sqlfolder: %s" % self.sqlfolder_path )
+		logging.debug( " Yamlfile: %s" % self.yamlfile_path )
 
 	def setenv(self):
-		print "\nSetting arcpy environment ..."
+		logging.debug( "\nSetting arcpy environment ..." )
 		arcpy.env.workspace = self.workspace
 		arcpy.env.overwriteOutput = True
 
@@ -78,7 +78,7 @@ class FileGDB:
 	def parse_yaml(self):
 		# parse yaml file and map datasets, feature classes, tables to schemas
 		if not path.exists(self.yamlfile_path):
-			print "\nCreating default YAML file ..."
+			logging.debug( "\nCreating default YAML file ..." )
 			self.create_yaml()
 
 		with open(self.yamlfile_path, 'r') as ymlfile:
@@ -101,7 +101,7 @@ class FileGDB:
 	# Open sql files
 	#
 	def open_files(self):
-		print "\nInitializing sql files ..."
+		logging.debug( "\nInitializing sql files ..." )
 
 		if not path.exists(self.sqlfolder_path):
 			os.mkdir(self.sqlfolder_path)
@@ -119,7 +119,7 @@ class FileGDB:
 	# close sql files
 	#
 	def close_files(self):
-		print "\nClosing sql files ..."
+		logging.debug( "\nClosing sql files ...")
 		self.f_create_schemas.close()
 		self.f_split_schemas.close()
 		self.f_create_indexes.close()
@@ -132,7 +132,7 @@ class FileGDB:
 	# Convert domains to tables
 	#
 	def process_domains(self):
-		print "\nProcessing domains ..."
+		logging.debug( "\nProcessing domains ...")
 
 		self.write_it(self.f_create_indexes, "\n-- Domains")
 		self.write_it(self.f_create_constraints, "\n-- Domains")
@@ -180,7 +180,7 @@ class FileGDB:
 		domain_field = "Code"
 		domain_field_desc = "Description"
 
-		print " %s" % domain_table
+		logging.debug( " %s" % domain_table )
 
 		if not arcpy.Exists(domain_table):
 			arcpy.DomainToTable_management(self.workspace, domain.name, domain_table, domain_field, domain_field_desc)
@@ -226,7 +226,7 @@ class FileGDB:
 	# Convert subtypes to tables
 	#
 	def process_subtypes(self):
-		print "\nProcessing subtypes ..."
+		logging.debug( "\nProcessing subtypes ...")
 
 		self.write_it(self.f_create_indexes, "\n-- Subtypes")
 		self.write_it(self.f_create_constraints, "\n-- Subtypes")
@@ -284,7 +284,7 @@ class FileGDB:
 						field_type = f.type
 
 			subtypes_table = "%s_%s_lut" % (layer, field)
-			print(" %s" % subtypes_table)
+			logging.debug( " %s" % subtypes_table) 
 
 			if not arcpy.Exists(subtypes_table):
 				# create subtypes table
@@ -312,7 +312,7 @@ class FileGDB:
 	# Create necessary indexes and foreign key constraints to support each relation
 	#
 	def process_relations(self):
-		print "\nProcessing relations ..."
+		logging.debug( "\nProcessing relations ..." )
 
 		self.write_it(self.f_create_indexes, "\n-- Relations (tables and feature classes)")
 		self.write_it(self.f_create_constraints, "\n-- Relations (tables and feature classes)")
@@ -337,7 +337,7 @@ class FileGDB:
 			if rel_foreign_key not in [field.name for field in arcpy.ListFields(rel_destination_table)]:
 				rel_foreign_key = rel.originClassKeys[1][0].upper()
 
-			print " %s" % rel.name
+			logging.debug( " %s" % rel.name )
 			# print " %s -> %s" % (rel_origin_table, rel_destination_table)
 
 			self.create_index(rel_origin_table, rel_primary_key)
@@ -389,7 +389,7 @@ class FileGDB:
 	# Prepare sql to split Tables and Feature Classes in Schemas
 	#
 	def process_schemas(self):
-		print "\nProcessing schemas ..."
+		logging.debug(  "Processing schemas ..." )
 
 		# create extension postgis
 		str_create_extension = "\nCREATE EXTENSION IF NOT EXISTS postgis;"
@@ -407,20 +407,21 @@ class FileGDB:
 
 		# split feature classes within feature datasets to schemas
 		self.write_it(self.f_split_schemas, "\n-- FeatureDatasets:")
-		print " FeatureDatasets"
-		for schema, datasets in self.feature_datasets.items():
+		logging.debug( " FeatureDatasets" )
+		for dataset, schema  in self.feature_datasets.items():
+			logging.debug("schema: {} , dataset: {} ".format(schema, dataset) )
 			if schema == 'public':
 				continue
-
-			for fds in datasets:
-				fc_list = arcpy.ListFeatureClasses("*", "", fds)
-				fc_list.sort()
-				for fc in fc_list:
-					self.split_schemas(fc, schema)
+			
+			fc_list = arcpy.ListFeatureClasses("*", "", dataset)
+			fc_list.sort()
+			for fc in fc_list:
+				logging.debug("fc: {} , schema: {} ".format(fc, schema) )
+				self.split_schemas(fc, schema)
 
 		# split feature classes outside of feature datasets to schemas
 		self.write_it(self.f_split_schemas, "\n-- FeatureClasses:")
-		print " FeatureClasses"
+		logging.debug( " FeatureClasses" )
 		for schema, fcs in self.feature_classes.items():
 			if schema == 'public':
 				continue
@@ -431,7 +432,7 @@ class FileGDB:
 
 		# split tables to schemas
 		self.write_it(self.f_split_schemas, "\n-- Tables:")
-		print " Tables"
+		logging.debug( " Tables" )
 		for schema, tables in self.tables.items():
 			if schema == 'public':
 				continue
@@ -542,7 +543,7 @@ class FileGDB:
 		return tableslist
 
 	def cleanup(self):
-		print("Cleanup temporary lookup tables...")
+		logging.debug("Cleanup temporary lookup tables...")
 		lutslist = arcpy.ListTables("*_lut")
 		for lut in lutslist:
 			arcpy.Delete_management(lut)

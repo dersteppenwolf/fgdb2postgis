@@ -6,7 +6,7 @@
  # Copyright: Cartologic 2017
  #
  ##
-import getopt, sys
+import getopt, sys, logging 
 from .filegdb import FileGDB
 from .postgis import PostGIS
 from .version import get_version
@@ -65,6 +65,14 @@ for opt, arg in options:
 # Main - Instantiate the required database objects and perform the conversion
 #
 def main():
+	logFormat = '%(asctime)-15s %(name)-12s %(levelname)-8s %(message)s'
+	logfile = "output.log"
+	logging.basicConfig(level=logging.DEBUG, format=logFormat, filename=logfile,  filemode='w' )
+	logging.getLogger().addHandler(logging.StreamHandler())
+	logging.getLogger("urllib3").setLevel(logging.WARNING)
+	logging.debug("***********************************")
+	logging.debug("Begin Program....")
+	logging.debug("***********************************")
 
 	filegdb = FileGDB(fgdb, a_srs)
 	filegdb.info()
@@ -86,4 +94,6 @@ def main():
 
 	filegdb.cleanup()
 
-	print "\nComplete!"
+	logging.debug("***********************************")
+	logging.debug("End Program....")
+	logging.debug("***********************************")

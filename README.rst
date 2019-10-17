@@ -113,6 +113,12 @@ Command line options::
 .. tip::
   * This tool is tested with PostgreSQL v 9.5 and PostGIS v 2.2
   * Currently the tool support only Latin Name fields and suptypes, domain values can be in any   language, make sure to set the corresponding windows domain
+  * DB user must have access to read an create objects on information_schema:
+
+
+    CREATE USER user WITH LOGIN SUPERUSER INHERIT  CREATEDB CREATEROLE  NOREPLICATION;
+    GRANT USAGE, CREATE ON SCHEMA information_schema TO user ;
+    GRANT SELECT ON ALL TABLES IN SCHEMA information_schema TO user;
 
 .. warning::
   * DO NOT apply this tool in a production postgis database!

@@ -1,7 +1,7 @@
 ##
  # postgis.py
  #
- # Description: Use ogr2ogr to conevert file geodatabase to postgis
+ # Description: Use ogr2ogr to convert file geodatabase to postgis
  #              Apply number of sql scripts to create indexes and foreign key constraints
  # Author: George Ioannou
  # Copyright: Cartologic 2017
@@ -53,16 +53,20 @@ class PostGIS:
 		print "\nLoading database tables ..."
 
 		cmd = 'ogr2ogr -f "PostgreSQL" "PG:%s" \
-			-progress \
-			-append \
-			-a_srs %s \
-			-t_srs %s \
+			-overwrite -progress -skipfailures -append \
+			-a_srs %s 	-t_srs %s \
 			-lco fid=id \
-			-lco launder=no \
-			-lco geometry_name=geom \
+			-lco launder=yes \
+			-lco geometry_name=geom -lco OVERWRITE=YES  \
 			--config OGR_TRUNCATE YES \
 			--config PG_USE_COPY YES \
 			%s' % (self.conn_string, filegdb.a_srs, self.t_srs, filegdb.workspace)
+
+		# ogr2ogr   "G:/500k_24_04_2016.gdb"  Administrativo_P  
+		#     -lco SCHEMA=cartografia_500k    
+		# -nlt  POINT -nln  administrativo_p
+		
+		print(cmd)
 
 		system(cmd)
 
