@@ -62,13 +62,13 @@ class FileGDB:
 		self.yamlfile_path = yamlfile_path
 
 	def info(self):
-		logging.debug( "\nFileGDB Info:" )
+		logging.debug( "FileGDB Info:" )
 		logging.debug( " Workspace: %s (%s)" % (self.workspace_path, self.a_srs) )
 		logging.debug( " Sqlfolder: %s" % self.sqlfolder_path )
 		logging.debug( " Yamlfile: %s" % self.yamlfile_path )
 
 	def setenv(self):
-		logging.debug( "\nSetting arcpy environment ..." )
+		logging.debug( "Setting arcpy environment ..." )
 		arcpy.env.workspace = self.workspace
 		arcpy.env.overwriteOutput = True
 
@@ -78,7 +78,7 @@ class FileGDB:
 	def parse_yaml(self):
 		# parse yaml file and map datasets, feature classes, tables to schemas
 		if not path.exists(self.yamlfile_path):
-			logging.debug( "\nCreating default YAML file ..." )
+			logging.debug( "Creating default YAML file ..." )
 			self.create_yaml()
 
 		with open(self.yamlfile_path, 'r') as ymlfile:
@@ -101,7 +101,7 @@ class FileGDB:
 	# Open sql files
 	#
 	def open_files(self):
-		logging.debug( "\nInitializing sql files ..." )
+		logging.debug( "Initializing sql files ..." )
 
 		if not path.exists(self.sqlfolder_path):
 			os.mkdir(self.sqlfolder_path)
@@ -119,7 +119,7 @@ class FileGDB:
 	# close sql files
 	#
 	def close_files(self):
-		logging.debug( "\nClosing sql files ...")
+		logging.debug( "Closing sql files ...")
 		self.f_create_schemas.close()
 		self.f_split_schemas.close()
 		self.f_create_indexes.close()
@@ -132,7 +132,7 @@ class FileGDB:
 	# Convert domains to tables
 	#
 	def process_domains(self):
-		logging.debug( "\nProcessing domains ...")
+		logging.debug( "Processing domains ...")
 
 		self.write_it(self.f_create_indexes, "\n-- Domains")
 		self.write_it(self.f_create_constraints, "\n-- Domains")
@@ -175,7 +175,7 @@ class FileGDB:
 	#
 	def create_domain_table(self, domain):
 		domain_name = domain.name.replace(" ", "")
-		domain_table = "%s_lut" % domain_name
+		domain_table = "%s_lut" % domain_name.lower()
 
 		domain_field = "Code"
 		domain_field_desc = "Description"
@@ -226,7 +226,7 @@ class FileGDB:
 	# Convert subtypes to tables
 	#
 	def process_subtypes(self):
-		logging.debug( "\nProcessing subtypes ...")
+		logging.debug( "Processing subtypes ...")
 
 		self.write_it(self.f_create_indexes, "\n-- Subtypes")
 		self.write_it(self.f_create_constraints, "\n-- Subtypes")
@@ -283,7 +283,7 @@ class FileGDB:
 					if f.name.upper() == field:
 						field_type = f.type
 
-			subtypes_table = "%s_%s_lut" % (layer, field)
+			subtypes_table = ( "%s_%s_lut" % (layer, field) ).lower()
 			logging.debug( " %s" % subtypes_table) 
 
 			if not arcpy.Exists(subtypes_table):
@@ -352,9 +352,10 @@ class FileGDB:
 
 			self.write_it(self.f_find_data_errors, str_data_errors)
 
-			str_fix_errors_1 = 'INSERT INTO "%s" ("%s")' % (rel_origin_table, rel_primary_key)
+			str_fix_errors_1 = 'INSERT INTO "%s" ("%s")' % (rel_origin_table.lower(), rel_primary_key.lower())
 			str_fix_errors_2 = 'SELECT DISTINCT detail."%s" \n  FROM "%s" AS detail \n LEFT JOIN "%s" AS master ON detail."%s" = master."%s" \n WHERE master.id IS NULL;\n'
 			str_fix_errors_2 = str_fix_errors_2 % (rel_foreign_key, rel_destination_table, rel_origin_table, rel_foreign_key, rel_primary_key)
+			str_fix_errors_2 = str_fix_errors_2.lower()
 
 			self.write_it(self.f_fix_data_errors, str_fix_errors_1)
 			self.write_it(self.f_fix_data_errors, str_fix_errors_2)
@@ -397,6 +398,7 @@ class FileGDB:
 
 		# create schemas
 		for schema in self.schemas:
+			schema = schema.lower()
 			if schema == 'public':
 				continue
 
@@ -409,7 +411,7 @@ class FileGDB:
 		self.write_it(self.f_split_schemas, "\n-- FeatureDatasets:")
 		logging.debug( " FeatureDatasets" )
 		for dataset, schema  in self.feature_datasets.items():
-			schema = schema[0]
+			schema = schema[0].lower()
 			logging.debug("schema: {} , dataset: {} ".format(schema, dataset) )
 			if schema == 'public':
 				continue
@@ -446,30 +448,30 @@ class FileGDB:
 	# Compose and write sql to alter the schema of a table
 	#
 	def split_schemas(self, table, schema):
-		str_split_schemas = "ALTER TABLE \"%s\" SET SCHEMA \"%s\";" % (table, schema)
+		str_split_schemas = "ALTER TABLE \"%s\" SET SCHEMA \"%s\";" % (table.lower(), schema.lower())
 		self.write_it(self.f_split_schemas, str_split_schemas)
 
 	#-------------------------------------------------------------------------------
 	# Create indexes
 	#
 	def create_index(self, table, field):
-		idx_name = "%s_%s_idx" % (table, field)
+		idx_name = ( "%s_%s_idx" % (table, field) ).lower()
 
 		if idx_name not in self.indexes:
 			self.indexes.append(idx_name)
-			str_index = "CREATE UNIQUE INDEX \"%s\" ON \"%s\" (\"%s\"); \n" % (idx_name, table, field)
+			str_index = "CREATE UNIQUE INDEX \"%s\" ON \"%s\" (\"%s\"); \n" % (idx_name, table.lower(), field.lower())
 			self.write_it(self.f_create_indexes, str_index)
 
 	#-------------------------------------------------------------------------------
 	# Create foreign key constraints
 	#
 	def create_foreign_key_constraint(self, table_details, fkey, table_master, pkey):
-		fkey_name = "%s_%s_%s_fkey" % (table_details, fkey, table_master)
+		fkey_name = ( "%s_%s_%s_fkey" % (table_details, fkey, table_master) ).lower()
 
 		if fkey_name not in self.constraints:
 			self.constraints.append(fkey_name)
 			str_constraint = 'ALTER TABLE "%s" ADD CONSTRAINT "%s" FOREIGN KEY ("%s") REFERENCES "%s" ("%s") NOT VALID; \n'
-			str_constraint = str_constraint % (table_details, fkey_name, fkey, table_master, pkey)
+			str_constraint = str_constraint % (table_details.lower(), fkey_name, fkey.lower(), table_master.lower(), pkey.lower())
 			self.write_it(self.f_create_constraints, str_constraint)
 
 	#-------------------------------------------------------------------------------

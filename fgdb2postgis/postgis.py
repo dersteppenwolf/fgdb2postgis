@@ -7,7 +7,7 @@
  # Copyright: Cartologic 2017
  #
  ##
-import sys
+import sys, logging
 import psycopg2
 from os import path, system
 
@@ -25,20 +25,20 @@ class PostGIS:
 		)
 
 	def info(self):
-		print '\nPostGIS Info:'
-		print ' Database: %s (%s)' % (self.dbname, self.t_srs)
-		print ' Host: %s' % self.host
-		print ' Port: %s' % self.port
-		print ' User: %s' % self.user
-		print ' Password: %s' % self.password
+		logging.debug(  'PostGIS Info:')
+		logging.debug(  ' Database: %s (%s)' % (self.dbname, self.t_srs) )
+		logging.debug(  ' Host: %s' % self.host  )
+		logging.debug(  ' Port: %s' % self.port   )
+		logging.debug(  ' User: %s' % self.user   )
+		logging.debug(  ' Password: %s' % self.password  )
 
 	def connect(self):
 		try:
 			self.conn = psycopg2.connect(self.conn_string)
-			print '\nConnect to database ...'
+			logging.debug(  'Connect to database ...' )
 		except psycopg2.Error as err:
-			print str(err)
-			print '\nUnable to connect to database %s ...' % self.dbname
+			logging.error(  str(err)  )
+			logging.error(  'Unable to connect to database %s ...' % self.dbname )
 			sys.exit(1)
 
 	def disconnect(self):
@@ -46,11 +46,11 @@ class PostGIS:
 			self.conn.commit()
 			self.conn.close()
 
-		print "\nDisconnect from database ..."
+		logging.debug(  "Disconnect from database ..." )
 
 	def load_database(self, filegdb):
 
-		print "\nLoading database tables ..."
+		logging.debug(  "Loading database tables ...")
 
 		cmd = 'ogr2ogr -f "PostgreSQL" "PG:%s" \
 			-overwrite -progress -skipfailures -append \
@@ -66,12 +66,12 @@ class PostGIS:
 		#     -lco SCHEMA=cartografia_500k    
 		# -nlt  POINT -nln  administrativo_p
 		
-		print(cmd)
+		logging.debug( cmd)
 
 		system(cmd)
 
 	def update_views(self):
-		print "\nUpdating database views ..."
+		logging.debug(  "Updating database views ..."  )
 		sql_files = [
 			'information_schema_views.sql',
 			'foreign_key_constraints_vw.sql'
@@ -82,7 +82,7 @@ class PostGIS:
 			self.execute_sql(sql_file)
 
 	def create_schemas(self, filegdb):
-		print "\nCreating schemas ..."
+		logging.debug(  "Creating schemas ..."  )
 
 		sql_files = ['create_schemas.sql']
 		for sql_file in sql_files:
@@ -90,7 +90,7 @@ class PostGIS:
 			self.execute_sql(sql_file)
 
 	def apply_sql(self, filegdb):
-		print "\nApplying sql scripts ..."
+		logging.debug(  "Applying sql scripts ..." )
 		sql_files = [
 			'fix_data_errors.sql',
 			'create_indexes.sql',
@@ -106,13 +106,13 @@ class PostGIS:
 		cursor = self.conn.cursor()
 
 		if path.exists(sql_file):
-			# print " %s" % sql_file
+			# logging.debug(  " %s" % sql_file )
 			with open(sql_file, "r") as sql:
 				code = sql.read()
 				cursor.execute(code)
 		else:
-			print " Unable to locate sql file:"
-			print sql_file
+			logging.error(  " Unable to locate sql file:")
+			logging.error(  sql_file )
 
 		cursor.close()
 		self.conn.commit()
