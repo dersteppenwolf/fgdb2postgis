@@ -409,6 +409,7 @@ class FileGDB:
 		self.write_it(self.f_split_schemas, "\n-- FeatureDatasets:")
 		logging.debug( " FeatureDatasets" )
 		for dataset, schema  in self.feature_datasets.items():
+			schema = schema[0]
 			logging.debug("schema: {} , dataset: {} ".format(schema, dataset) )
 			if schema == 'public':
 				continue
