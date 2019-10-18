@@ -321,7 +321,7 @@ class FileGDB:
 	# Create necessary indexes and foreign key constraints to support each relation
 	#
 	def process_relations(self):
-		logging.debug( "\nProcessing relations ..." )
+		logging.debug( "Processing relations ..." )
 
 		self.write_it(self.f_create_indexes, "\n-- Relations (tables and feature classes)")
 		self.write_it(self.f_create_constraints, "\n-- Relations (tables and feature classes)")
@@ -332,10 +332,23 @@ class FileGDB:
 			rel = arcpy.Describe(relClass)
 			if rel.isAttachmentRelationship:
 				continue
-
+			
 			rel_origin_table = rel.originClassNames[0]
 			rel_destination_table = rel.destinationClassNames[0]
 
+			logging.debug( " rel_origin_table : {} , rel_destination_table : {}".format(rel_origin_table, rel_destination_table) )
+
+
+			desc_destination = arcpy.Describe(rel_destination_table)
+			logging.debug(desc_destination.dataType)
+			if desc_destination.dataType in ('FeatureClass'):
+				feature_type = desc_destination.featureType
+				logging.debug(feature_type)
+				# ignore annotations 
+				if feature_type != 'Simple':
+					continue
+			
+			
 			#rel_primary_key = rel.originClassKeys[0][0]
 			rel_foreign_key = rel.originClassKeys[1][0]
 
@@ -379,7 +392,15 @@ class FileGDB:
 	def get_relationship_classes(self):
 
 		# get featureclasses outside of datasets
-		fc_list = arcpy.ListFeatureClasses("*")
+		fc_list = []
+		features =  arcpy.ListFeatureClasses("*")
+		for f in features:
+			feature_desc = arcpy.Describe(f)	
+			feature_type = feature_desc.featureType
+			#logging.debug( " f : {}, type: {} ".format(f, feature_type) )
+			# ignore annotations 
+			if feature_type == 'Simple':
+				fc_list.append(f)
 
 		# get fetatureclasses within datasets
 		fds_list = arcpy.ListDatasets("*","Feature")
@@ -388,7 +409,7 @@ class FileGDB:
 			for f in features:
 				feature_desc = arcpy.Describe(f)	
 				feature_type = feature_desc.featureType
-				logging.debug( " f : {}, type: {} ".format(f, feature_type) )
+				#logging.debug( " f : {}, type: {} ".format(f, feature_type) )
 				# ignore annotations 
 				if feature_type == 'Simple':
 					fc_list.append(f)
@@ -402,9 +423,14 @@ class FileGDB:
 		# create relationship classes set
 		relClasses = set()
 		for i, fc in enumerate(fc_list):
+			#logging.debug(fc)
 			desc = arcpy.Describe(fc)
-			for j,rel in enumerate(desc.relationshipClassNames):
-				relClasses.add(rel)
+			#logging.debug(desc.dataType)
+			dataType = desc.dataType
+			# ignore annotations 
+			if dataType in ('FeatureClass', 'Table'):
+				for j,rel in enumerate(desc.relationshipClassNames):
+					relClasses.add(rel)
 
 		return relClasses
 
