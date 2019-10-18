@@ -327,15 +327,17 @@ class FileGDB:
 			rel_origin_table = rel.originClassNames[0]
 			rel_destination_table = rel.destinationClassNames[0]
 
-			rel_primary_key = rel.originClassKeys[0][0]
+			#rel_primary_key = rel.originClassKeys[0][0]
 			rel_foreign_key = rel.originClassKeys[1][0]
+
+			rel_primary_key = "id"
 			
 			# convert primary/foreign key to uppercase if not found
-			if rel_primary_key not in [field.name for field in arcpy.ListFields(rel_origin_table)]:
-				rel_primary_key = rel.originClassKeys[0][0].upper()
+			# if rel_primary_key not in [field.name for field in arcpy.ListFields(rel_origin_table)]:
+			# 	rel_primary_key = rel.originClassKeys[0][0].upper()
 
-			if rel_foreign_key not in [field.name for field in arcpy.ListFields(rel_destination_table)]:
-				rel_foreign_key = rel.originClassKeys[1][0].upper()
+			# if rel_foreign_key not in [field.name for field in arcpy.ListFields(rel_destination_table)]:
+			# 	rel_foreign_key = rel.originClassKeys[1][0].upper()
 
 			logging.debug( " %s" % rel.name )
 			# print " %s -> %s" % (rel_origin_table, rel_destination_table)
@@ -349,10 +351,12 @@ class FileGDB:
 
 			str_data_errors = 'SELECT COUNT(*) FROM "%s" dest WHERE NOT EXISTS (SELECT 1 FROM "%s" orig WHERE dest."%s" = orig."%s");'
 			str_data_errors = str_data_errors % (rel_destination_table, rel_origin_table, rel_foreign_key, rel_primary_key)
+			str_data_errors = str_data_errors.lower()
 
 			self.write_it(self.f_find_data_errors, str_data_errors)
 
-			str_fix_errors_1 = 'INSERT INTO "%s" ("%s")' % (rel_origin_table.lower(), rel_primary_key.lower())
+			str_fix_errors_1 = 'INSERT INTO "%s" ("%s")' % (rel_origin_table, rel_primary_key)
+			str_fix_errors_1 = str_fix_errors_1.lower()
 			str_fix_errors_2 = 'SELECT DISTINCT detail."%s" \n  FROM "%s" AS detail \n LEFT JOIN "%s" AS master ON detail."%s" = master."%s" \n WHERE master.id IS NULL;\n'
 			str_fix_errors_2 = str_fix_errors_2 % (rel_foreign_key, rel_destination_table, rel_origin_table, rel_foreign_key, rel_primary_key)
 			str_fix_errors_2 = str_fix_errors_2.lower()
@@ -371,7 +375,17 @@ class FileGDB:
 		# get fetatureclasses within datasets
 		fds_list = arcpy.ListDatasets("*","Feature")
 		for fds in fds_list:
-			fc_list += arcpy.ListFeatureClasses("*", "", fds)
+			features = arcpy.ListFeatureClasses("*", "", fds)
+			for f in features:
+				feature_desc = arcpy.Describe(f)	
+				feature_type = feature_desc.featureType
+				logging.debug( " f : {}, type: {} ".format(f, feature_type) )
+				# ignore annotations 
+				if feature_type == 'Simple':
+					fc_list.append(f)
+
+
+			#fc_list += features
 
 		# get tables
 		fc_list += arcpy.ListTables("*")

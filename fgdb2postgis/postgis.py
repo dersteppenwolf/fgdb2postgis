@@ -52,18 +52,14 @@ class PostGIS:
 
 		logging.debug(  "Loading database tables ...")
 
-		cmd = 'ogr2ogr -f "PostgreSQL" "PG:%s" \
-			-overwrite -progress -skipfailures -append \
-			-a_srs %s 	-t_srs %s \
-			-lco fid=id \
-			-lco launder=yes \
+		cmd = 'ogr2ogr -f "PostgreSQL" "PG:%s" 	-overwrite -progress -skipfailures -append \
+			-a_srs %s 	-t_srs %s 	-lco launder=yes  -lco fid=id  \
 			-lco geometry_name=geom -lco OVERWRITE=YES  \
-			--config OGR_TRUNCATE YES \
-			--config PG_USE_COPY YES \
+			--config OGR_TRUNCATE YES 	--config PG_USE_COPY YES \
 			%s' % (self.conn_string, filegdb.a_srs, self.t_srs, filegdb.workspace)
 
 		# ogr2ogr   "G:/500k_24_04_2016.gdb"  Administrativo_P  
-		#     -lco SCHEMA=cartografia_500k    
+		#     -lco SCHEMA=cartografia_500k   \
 		# -nlt  POINT -nln  administrativo_p
 		
 		logging.debug( cmd)
