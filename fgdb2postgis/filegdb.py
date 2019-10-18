@@ -167,8 +167,13 @@ class FileGDB:
 			fc_list = arcpy.ListFeatureClasses("*", "", fds)
 			fc_list.sort()
 
-			for fc in fc_list:
-				self.create_constraints_referencing_domains(fc)
+			for f in fc_list:
+				feature_desc = arcpy.Describe(f)	
+				feature_type = feature_desc.featureType
+				# ignore annotations 
+				if feature_type == 'Simple':
+					self.create_constraints_referencing_domains(f)
+
 
 	#-------------------------------------------------------------------------------
 	# Create domain table (list of values)
@@ -253,9 +258,13 @@ class FileGDB:
 		for fds in fds_list:
 			fc_list = arcpy.ListFeatureClasses("*", "", fds)
 			fc_list.sort()
-
-			for fc in fc_list:
-				self.create_subtypes_table(fc)
+				
+			for f in fc_list:
+				feature_desc = arcpy.Describe(f)	
+				feature_type = feature_desc.featureType
+				# ignore annotations 
+				if feature_type == 'Simple':
+					self.create_subtypes_table(f)
 
 	#-------------------------------------------------------------------------------
 	# Create subtypes table for layer/field and insert records (list of values)
