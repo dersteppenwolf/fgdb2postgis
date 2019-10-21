@@ -12,8 +12,9 @@ import psycopg2
 from os import path, system
 
 class PostGIS:
-	def __init__(self, host, port, user, password, dbname, t_srs):
+	def __init__(self, host, port, user, password, dbname,a_srs, t_srs):
 		self.dbname = dbname
+		self.a_srs = a_srs
 		self.t_srs = t_srs
 		self.host = host
 		self.port = port
@@ -31,8 +32,41 @@ class PostGIS:
 		logging.debug(  ' Port: %s' % self.port   )
 		logging.debug(  ' User: %s' % self.user   )
 		logging.debug(  ' Password: %s' % self.password  )
+		self.create_database()
+
+
+	'''
+	Create a new database 
+	'''
+	def create_database(self):
+		logging.debug(  "create_database ...")
+		try:
+			conn = psycopg2.connect("dbname=%s host=%s port=%s user=%s password=%s" % ("postgres", self.host, self.port, self.user, self.password) )
+			conn.set_isolation_level(0)
+			cursor = conn.cursor()
+			sql = " DROP DATABASE  IF EXISTS {} ; ".format(self.dbname)
+			cursor.execute(sql)
+			sql = " create DATABASE  {} ; ".format(self.dbname)
+			cursor.execute(sql)
+			cursor.close()
+
+			conn = psycopg2.connect("dbname=%s host=%s port=%s user=%s password=%s" % (self.dbname, self.host, self.port, self.user, self.password) )
+			conn.set_isolation_level(0)
+			cursor = conn.cursor()
+			sql = "GRANT USAGE, CREATE ON SCHEMA information_schema TO {} ;".format(self.user)
+			cursor.execute(sql)
+			sql = "GRANT SELECT ON ALL TABLES IN SCHEMA information_schema TO {}".format(self.user )
+			cursor.execute(sql)
+			cursor.close()
+
+		except psycopg2.Error as err:
+			logging.error(  str(err)  )
+			logging.error(  'Unable to create database %s ...' % self.dbname )
+			sys.exit(1)
+
 
 	def connect(self):
+		logging.debug(  "connect to database ...")
 		try:
 			self.conn = psycopg2.connect(self.conn_string)
 			logging.debug(  'Connect to database ...' )
@@ -42,13 +76,17 @@ class PostGIS:
 			sys.exit(1)
 
 	def disconnect(self):
+		logging.debug(  "disconnect from database ...")
 		if self.conn:
 			self.conn.commit()
 			self.conn.close()
 
-		logging.debug(  "Disconnect from database ..." )
+		logging.debug(  "Disconnected from database." )
 
 	def load_database(self, filegdb):
+
+		
+
 
 		logging.debug(  "Loading database tables ...")
 
@@ -56,7 +94,7 @@ class PostGIS:
 			-a_srs %s 	-t_srs %s 	-lco launder=yes  -lco fid=id  \
 			-lco geometry_name=geom -lco OVERWRITE=YES  \
 			--config OGR_TRUNCATE YES 	--config PG_USE_COPY YES \
-			%s' % (self.conn_string, filegdb.a_srs, self.t_srs, filegdb.workspace)
+			%s' % (self.conn_string, self.a_srs, self.t_srs, filegdb.workspace)
 
 		# ogr2ogr   "G:/500k_24_04_2016.gdb"  Administrativo_P  
 		#     -lco SCHEMA=cartografia_500k   \
@@ -67,6 +105,8 @@ class PostGIS:
 		system(cmd)
 
 	def update_views(self):
+		
+
 		logging.debug(  "Updating database views ..."  )
 		sql_files = [
 			'information_schema_views.sql',
@@ -97,6 +137,14 @@ class PostGIS:
 		for sql_file in sql_files:
 			sql_file = path.join(filegdb.sqlfolder_path, sql_file)
 			self.execute_sql(sql_file)
+
+
+	
+	def execute(self, sql):
+		cursor = self.conn.cursor()
+		cursor.execute(sql)
+		cursor.close()
+		self.conn.commit()
 
 	def execute_sql(self, sql_file):
 		cursor = self.conn.cursor()

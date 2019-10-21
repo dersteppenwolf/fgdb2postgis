@@ -116,9 +116,12 @@ Command line options::
   * DB user must have access to read an create objects on information_schema:
 
 
-    CREATE USER user WITH LOGIN SUPERUSER INHERIT  CREATEDB CREATEROLE  NOREPLICATION;
-    GRANT USAGE, CREATE ON SCHEMA information_schema TO user ;
-    GRANT SELECT ON ALL TABLES IN SCHEMA information_schema TO user;
+    revoke all ON SCHEMA information_schema from user_migrate ;
+    revoke all ON ALL TABLES IN SCHEMA information_schema from  user_migrate;
+    drop user user_migrate;
+    
+    CREATE USER user_migrate  WITH PASSWORD 'xxxxx' LOGIN SUPERUSER INHERIT  CREATEDB CREATEROLE  NOREPLICATION;
+    
 
 .. warning::
   * DO NOT apply this tool in a production postgis database!

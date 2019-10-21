@@ -25,9 +25,9 @@ except ImportError:
 yaml = YAML()
 
 class FileGDB:
-	def __init__(self, workspace, a_srs):
+	def __init__(self, workspace, include_empty):
 		self.workspace = workspace
-		self.a_srs = a_srs
+		self.include_empty = include_empty
 		self.workspace_path = ""
 		self.sqlfolder_path = ""
 		self.yamlfile_path = ""
@@ -40,6 +40,7 @@ class FileGDB:
 		self.init_paths()
 		self.setenv()
 		self.parse_yaml()
+		self.datasets = []
 
 	#-------------------------------------------------------------------------------
 	# Initialize file geodatabase environment
@@ -63,7 +64,7 @@ class FileGDB:
 
 	def info(self):
 		logging.debug( "FileGDB Info:" )
-		logging.debug( " Workspace: %s (%s)" % (self.workspace_path, self.a_srs) )
+		logging.debug( " Workspace: %s " % (self.workspace_path) )
 		logging.debug( " Sqlfolder: %s" % self.sqlfolder_path )
 		logging.debug( " Yamlfile: %s" % self.yamlfile_path )
 
@@ -83,6 +84,7 @@ class FileGDB:
 
 		with open(self.yamlfile_path, 'r') as ymlfile:
 			data_map = yaml.load(ymlfile)
+
 			for key_type, value_items in data_map.items():
 				if (key_type == "Schemas"):
 					self.schemas = value_items
@@ -92,6 +94,8 @@ class FileGDB:
 					self.feature_classes = value_items
 				elif (key_type == "Tables"):
 					self.tables = value_items
+			
+			self.datasets = self.get_feature_datasets()
 
 		# lookup_tables is a default schema and it will host subtypes, domains
 		if 'lookup_tables' not in self.schemas:
@@ -144,27 +148,21 @@ class FileGDB:
 			self.create_domain_table(domain)
 
 		## create fk constraints for data tables referencing domain tables
-		tables_list = arcpy.ListTables()
-		tables_list.sort()
-
+		tables_list = self.get_tables()
+		
 		for table in tables_list:
 			self.create_constraints_referencing_domains(table)
 
 		## create fk constraints for feature classes referencing domain tables
 
 		# stand-alone feature classes
-		fc_list = arcpy.ListFeatureClasses("*", "")
-		fc_list.sort()
+		fc_list = self.get_feature_classes(None) 
 
 		for fc in fc_list:
 			self.create_constraints_referencing_domains(fc)
 
-		# feature classes in feature datasets
-		fds_list = arcpy.ListDatasets("*", "Feature")
-		fds_list.sort()
-
-		for fds in fds_list:
-			fc_list = arcpy.ListFeatureClasses("*", "", fds)
+		for fds in self.datasets:
+			fc_list = self.get_feature_classes(fds) 
 			fc_list.sort()
 
 			for f in fc_list:
@@ -238,26 +236,20 @@ class FileGDB:
 		self.write_it(self.f_split_schemas, "\n-- Subtypes")
 
 		# create subtypes table for tables
-		tables_list = arcpy.ListTables()
-		tables_list.sort()
+		tables_list = self.get_tables()
 
 		for table in tables_list:
 			self.create_subtypes_table(table)
 
 		# create subtypes table for stand-alone featureclasses
-		fc_list = arcpy.ListFeatureClasses("*", "")
-		fc_list.sort()
+		fc_list = self.get_feature_classes(None)
 
 		for fc in fc_list:
 			self.create_subtypes_table(fc)
 
 		# create subtypes table for featureclasses in datasets
-		fds_list = arcpy.ListDatasets("*", "Feature")
-		fds_list.sort()
-
-		for fds in fds_list:
-			fc_list = arcpy.ListFeatureClasses("*", "", fds)
-			fc_list.sort()
+		for fds in self.datasets:
+			fc_list = self.get_feature_classes(fds)
 				
 			for f in fc_list:
 				feature_desc = arcpy.Describe(f)	
@@ -393,7 +385,7 @@ class FileGDB:
 
 		# get featureclasses outside of datasets
 		fc_list = []
-		features =  arcpy.ListFeatureClasses("*")
+		features =  self.get_feature_classes(None)
 		for f in features:
 			feature_desc = arcpy.Describe(f)	
 			feature_type = feature_desc.featureType
@@ -402,10 +394,9 @@ class FileGDB:
 			if feature_type == 'Simple':
 				fc_list.append(f)
 
-		# get fetatureclasses within datasets
-		fds_list = arcpy.ListDatasets("*","Feature")
-		for fds in fds_list:
-			features = arcpy.ListFeatureClasses("*", "", fds)
+		# get featureclasses within datasets
+		for fds in self.datasets:
+			features = self.get_feature_classes(fds)
 			for f in features:
 				feature_desc = arcpy.Describe(f)	
 				feature_type = feature_desc.featureType
@@ -418,7 +409,7 @@ class FileGDB:
 			#fc_list += features
 
 		# get tables
-		fc_list += arcpy.ListTables("*")
+		fc_list += self.get_tables()
 
 		# create relationship classes set
 		relClasses = set()
@@ -465,7 +456,7 @@ class FileGDB:
 			if schema == 'public':
 				continue
 			
-			fc_list = arcpy.ListFeatureClasses("*", "", dataset)
+			fc_list = self.get_feature_classes(dataset) 
 			fc_list.sort()
 			for fc in fc_list:
 				logging.debug("fc: {} , schema: {} ".format(fc, schema) )
@@ -582,18 +573,61 @@ class FileGDB:
 		with open(self.yamlfile_path, 'a') as outfile:
 			yaml.dump(tablesdict, outfile)
 
+	'''
+
+	'''
 	def get_feature_datasets(self):
-		fdslist = arcpy.ListDatasets()
+		logging.debug("get_feature_datasets")
+		fdslist = arcpy.ListDatasets("*", "Feature")
+		fdslist.sort()
 		return fdslist
 
+	'''
+	
+	'''
 	def get_feature_classes(self, fds):
+		logging.debug("get_feature_classes")
 		fclist = arcpy.ListFeatureClasses("*", "", fds)
-		return fclist
+		features = []
+		if not  self.include_empty:
+			for f in fclist:
+				result = arcpy.GetCount_management(f)
+				count = int(result.getOutput(0))
+				logging.debug("Feature: {} , Count: {} ".format(  f, count  ))
+				if count > 0:
+					features.append(f)
+		else:
+			if fclist :
+				features = fclist
+		features.sort()
+		logging.debug("features:  ".format( features ))
+		return features
 
+	'''
+
+	'''
 	def get_tables(self):
+		logging.debug("get_tables")
 		tableslist = arcpy.ListTables("*")
-		return tableslist
+		tables = []
+		if not  self.include_empty:
+			for t in tableslist:
+				result = arcpy.GetCount_management(t)
+				count = int(result.getOutput(0))
+				logging.debug("Table: {} , Count: {} ".format( t, count  ))
+				if count > 0:
+					tables.append(t)
+		else:
+			tables = tableslist
 
+		tables.sort()
+		logging.debug("tables:".format( tables ))
+		return tables
+
+
+	'''
+
+	'''
 	def cleanup(self):
 		logging.debug("Cleanup temporary lookup tables...")
 		lutslist = arcpy.ListTables("*_lut")
