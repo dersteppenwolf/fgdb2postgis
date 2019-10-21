@@ -580,7 +580,7 @@ class FileGDB:
 				feature_type = feature_desc.featureType
 				result = arcpy.GetCount_management(f)
 				count = int(result.getOutput(0))
-				logging.debug("Feature: {} , Count: {}, feature_type:  ".format(  f, count , feature_type ))
+				logging.debug("Feature: {} , Count: {}, feature_type: {} ".format(  f, count , feature_type ))
 				if count > 0  and feature_type == 'Simple':
 					features.append(f)
 		else:
