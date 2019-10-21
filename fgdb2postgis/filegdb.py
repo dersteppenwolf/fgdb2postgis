@@ -602,6 +602,8 @@ class FileGDB:
 				result = arcpy.GetCount_management(t)
 				count = int(result.getOutput(0))
 				logging.debug("Table: {} , Count: {} ".format( t, count  ))
+				if t.startswith(self.lookup_prefix):
+					continue
 				if count > 0:
 					tables.append(t)
 		else:
