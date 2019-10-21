@@ -93,7 +93,6 @@ def main():
 		logging.debug("fgdb:{},  include_empty:{}  ".format(   fgdb, a_srs, include_empty          ))
 		logging.debug("host:{},  port:{},  user:{} ,  password:{},  database:{}, a_srs:{},   t_srs:{}  ".format(   host, port, user, password, database, a_srs,  t_srs  ))
 
-
 		logging.debug("Begin Program....")
 		filegdb = FileGDB(fgdb, include_empty)
 		postgis = PostGIS(host, port, user, password, database, a_srs,  t_srs)

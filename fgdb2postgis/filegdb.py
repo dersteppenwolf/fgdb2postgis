@@ -39,6 +39,8 @@ class FileGDB:
 		self.constraints = []
 		self.datasets = []
 
+		self.lookup_prefix = "lut_"
+
 		self.info()
 		self.init_paths()
 		self.setenv()
@@ -186,7 +188,7 @@ class FileGDB:
 	def create_domain_table(self, domain):
 		domain_name = domain.name.replace(" ", "")
 		logging.debug( "create_domain_table: {} ".format(domain_name))
-		domain_table = "%s_lut" % domain_name.lower()
+		domain_table = "{}{}".format(self.lookup_prefix , domain_name.lower() ) 
 
 		domain_field = "Code"
 		domain_field_desc = "Description"
@@ -221,7 +223,7 @@ class FileGDB:
 				elif k2 == 'SubtypeField':
 					if v2 != '':
 						stfield = v2
-						sttable = "%s_%s_lut" % (layer, stfield)
+						sttable = "{}{}{}".format(self.lookup_prefix , layer, stfield ) 
 					else:
 						stfield = '--'
 						sttable = '--'
@@ -229,7 +231,7 @@ class FileGDB:
 				elif k2 == 'FieldValues':
 					for dmfield, v3 in v2.iteritems():
 						if v3[1] is not None:
-							dmtable = v3[1].name + '_lut'
+							dmtable = self.lookup_prefix + v3[1].name
 							self.create_foreign_key_constraint(layer, dmfield, dmtable, dmcode)
 
 
@@ -293,7 +295,7 @@ class FileGDB:
 					if f.name.upper() == field:
 						field_type = f.type
 
-			subtypes_table = ( "%s_%s_lut" % (layer, field) ).lower()
+			subtypes_table = "{}{}_{}".format(self.lookup_prefix, layer, field).lower()
 			logging.debug( " %s" % subtypes_table) 
 
 			if not arcpy.Exists(subtypes_table):
@@ -642,6 +644,6 @@ class FileGDB:
 	'''
 	def cleanup(self):
 		logging.debug("Cleanup temporary lookup tables...")
-		lutslist = arcpy.ListTables("*_lut")
+		lutslist = arcpy.ListTables(self.lookup_prefix+"*")
 		for lut in lutslist:
 			arcpy.Delete_management(lut)
