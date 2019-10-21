@@ -97,20 +97,9 @@ def main():
 		filegdb = FileGDB(fgdb, include_empty)
 		postgis = PostGIS(host, port, user, password, database, a_srs,  t_srs)
 
-		filegdb.open_files()
-		filegdb.process_domains()
-		filegdb.process_subtypes()
-		filegdb.process_relations()
-		filegdb.process_schemas()
-		filegdb.close_files()
-
-		postgis.connect()
-		postgis.update_views()
-		postgis.create_schemas(filegdb)
-		postgis.load_database(filegdb)
-		postgis.apply_sql(filegdb)
-		postgis.disconnect()
-
+		filegdb.process()
+		postgis.process()
+		
 		filegdb.cleanup()
 	except Exception as e:
 		printError(e)

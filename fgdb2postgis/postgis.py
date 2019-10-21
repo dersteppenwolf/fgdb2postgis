@@ -36,6 +36,14 @@ class PostGIS:
 		logging.debug(  ' Password: %s' % self.password  )
 		self.create_database()
 
+	def process(self):
+		self.connect()
+		self.update_views()
+		self.create_schemas(filegdb)
+		self.load_database(filegdb)
+		self.apply_sql(filegdb)
+		self.disconnect()
+
 
 	'''
 	Create a new database 

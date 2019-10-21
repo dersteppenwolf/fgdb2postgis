@@ -80,6 +80,14 @@ class FileGDB:
 		arcpy.env.workspace = self.workspace
 		arcpy.env.overwriteOutput = True
 
+	def process(self):
+		self.open_files()
+		self.process_domains()
+		self.process_subtypes()
+		self.process_relations()
+		self.process_schemas()
+		self.close_files()
+
 	#-------------------------------------------------------------------------------
 	# Parse the yaml file and map data to schemas
 	#
