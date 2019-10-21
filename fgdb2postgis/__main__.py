@@ -98,9 +98,6 @@ def main():
 		filegdb = FileGDB(fgdb, include_empty)
 		postgis = PostGIS(host, port, user, password, database, a_srs,  t_srs)
 
-		filegdb.info()
-		postgis.info()
-
 		filegdb.open_files()
 		filegdb.process_domains()
 		filegdb.process_subtypes()

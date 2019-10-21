@@ -37,10 +37,14 @@ class FileGDB:
 		self.tables = {}
 		self.indexes = []
 		self.constraints = []
+		self.datasets = []
+
+		self.info()
 		self.init_paths()
 		self.setenv()
 		self.parse_yaml()
-		self.datasets = []
+		self.datasets = self.get_feature_datasets()
+		
 
 	#-------------------------------------------------------------------------------
 	# Initialize file geodatabase environment
@@ -62,6 +66,7 @@ class FileGDB:
 		self.sqlfolder_path = sqlfolder_path
 		self.yamlfile_path = yamlfile_path
 
+
 	def info(self):
 		logging.debug( "FileGDB Info:" )
 		logging.debug( " Workspace: %s " % (self.workspace_path) )
@@ -77,6 +82,7 @@ class FileGDB:
 	# Parse the yaml file and map data to schemas
 	#
 	def parse_yaml(self):
+		logging.debug( "parse_yaml..." )
 		# parse yaml file and map datasets, feature classes, tables to schemas
 		if not path.exists(self.yamlfile_path):
 			logging.debug( "Creating default YAML file ..." )
@@ -95,8 +101,6 @@ class FileGDB:
 				elif (key_type == "Tables"):
 					self.tables = value_items
 			
-			self.datasets = self.get_feature_datasets()
-
 		# lookup_tables is a default schema and it will host subtypes, domains
 		if 'lookup_tables' not in self.schemas:
 			self.schemas.append('lookup_tables')
@@ -136,6 +140,7 @@ class FileGDB:
 	# Convert domains to tables
 	#
 	def process_domains(self):
+		logging.debug( "***********************************************************")
 		logging.debug( "Processing domains ...")
 
 		self.write_it(self.f_create_indexes, "\n-- Domains")
@@ -147,23 +152,24 @@ class FileGDB:
 		for domain in domains_list:
 			self.create_domain_table(domain)
 
-		## create fk constraints for data tables referencing domain tables
+		logging.debug( "create fk constraints for data tables referencing domain tables ...")
 		tables_list = self.get_tables()
 		
 		for table in tables_list:
 			self.create_constraints_referencing_domains(table)
 
-		## create fk constraints for feature classes referencing domain tables
 
-		# stand-alone feature classes
+		logging.debug( "stand-alone feature classes ...")
 		fc_list = self.get_feature_classes(None) 
 
 		for fc in fc_list:
 			self.create_constraints_referencing_domains(fc)
 
+		logging.debug( "features inside datasets...")
+		logging.debug( self.datasets)
 		for fds in self.datasets:
+			logging.debug( "fds : {} ".format(fds) )
 			fc_list = self.get_feature_classes(fds) 
-			fc_list.sort()
 
 			for f in fc_list:
 				feature_desc = arcpy.Describe(f)	
@@ -171,6 +177,7 @@ class FileGDB:
 				# ignore annotations 
 				if feature_type == 'Simple':
 					self.create_constraints_referencing_domains(f)
+		logging.debug( "***********************************************************")
 
 
 	#-------------------------------------------------------------------------------
@@ -178,6 +185,7 @@ class FileGDB:
 	#
 	def create_domain_table(self, domain):
 		domain_name = domain.name.replace(" ", "")
+		logging.debug( "create_domain_table: {} ".format(domain_name))
 		domain_table = "%s_lut" % domain_name.lower()
 
 		domain_field = "Code"
@@ -196,6 +204,7 @@ class FileGDB:
 	# Create foraign key constraints to tables referencing domain tables
 	#
 	def create_constraints_referencing_domains(self, layer):
+		logging.debug( "create_constraints_referencing_domains: {} ".format(layer))
 		dmcode = "Code"
 		dmcode_desc = "Description"
 
@@ -506,7 +515,10 @@ class FileGDB:
 	# Create foreign key constraints
 	#
 	def create_foreign_key_constraint(self, table_details, fkey, table_master, pkey):
+		logging.debug( "create_foreign_key_constraint: table_details : {} ".format(table_details))
+
 		fkey_name = ( "%s_%s_%s_fkey" % (table_details, fkey, table_master) ).lower()
+		logging.debug( "fkey_name:  {} ".format(fkey_name))
 
 		if fkey_name not in self.constraints:
 			self.constraints.append(fkey_name)
@@ -600,7 +612,7 @@ class FileGDB:
 			if fclist :
 				features = fclist
 		features.sort()
-		logging.debug("features:  ".format( features ))
+		logging.debug(features )
 		return features
 
 	'''
@@ -621,7 +633,7 @@ class FileGDB:
 			tables = tableslist
 
 		tables.sort()
-		logging.debug("tables:".format( tables ))
+		logging.debug(tables )
 		return tables
 
 

@@ -25,6 +25,8 @@ class PostGIS:
 			"dbname=%s host=%s port=%s user=%s password=%s" % (self.dbname, self.host, self.port, self.user, self.password)
 		)
 
+		self.info()
+
 	def info(self):
 		logging.debug(  'PostGIS Info:')
 		logging.debug(  ' Database: %s (%s)' % (self.dbname, self.t_srs) )
