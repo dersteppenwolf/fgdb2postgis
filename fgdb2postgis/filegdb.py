@@ -172,13 +172,8 @@ class FileGDB:
 		for fds in self.datasets:
 			logging.debug( "fds : {} ".format(fds) )
 			fc_list = self.get_feature_classes(fds) 
-
 			for f in fc_list:
-				feature_desc = arcpy.Describe(f)	
-				feature_type = feature_desc.featureType
-				# ignore annotations 
-				if feature_type == 'Simple':
-					self.create_constraints_referencing_domains(f)
+				self.create_constraints_referencing_domains(f)
 		logging.debug( "***********************************************************")
 
 
@@ -263,11 +258,7 @@ class FileGDB:
 			fc_list = self.get_feature_classes(fds)
 				
 			for f in fc_list:
-				feature_desc = arcpy.Describe(f)	
-				feature_type = feature_desc.featureType
-				# ignore annotations 
-				if feature_type == 'Simple':
-					self.create_subtypes_table(f)
+				self.create_subtypes_table(f)
 
 	#-------------------------------------------------------------------------------
 	# Create subtypes table for layer/field and insert records (list of values)
@@ -351,12 +342,9 @@ class FileGDB:
 				if feature_type != 'Simple':
 					continue
 			
-			
-			#rel_primary_key = rel.originClassKeys[0][0]
+			rel_primary_key = "id"
 			rel_foreign_key = rel.originClassKeys[1][0]
 
-			rel_primary_key = "id"
-			
 			# convert primary/foreign key to uppercase if not found
 			# if rel_primary_key not in [field.name for field in arcpy.ListFields(rel_origin_table)]:
 			# 	rel_primary_key = rel.originClassKeys[0][0].upper()
@@ -395,29 +383,12 @@ class FileGDB:
 	def get_relationship_classes(self):
 
 		# get featureclasses outside of datasets
-		fc_list = []
-		features =  self.get_feature_classes(None)
-		for f in features:
-			feature_desc = arcpy.Describe(f)	
-			feature_type = feature_desc.featureType
-			#logging.debug( " f : {}, type: {} ".format(f, feature_type) )
-			# ignore annotations 
-			if feature_type == 'Simple':
-				fc_list.append(f)
+		fc_list =  self.get_feature_classes(None)
 
 		# get featureclasses within datasets
 		for fds in self.datasets:
 			features = self.get_feature_classes(fds)
-			for f in features:
-				feature_desc = arcpy.Describe(f)	
-				feature_type = feature_desc.featureType
-				#logging.debug( " f : {}, type: {} ".format(f, feature_type) )
-				# ignore annotations 
-				if feature_type == 'Simple':
-					fc_list.append(f)
-
-
-			#fc_list += features
+			fc_list.extend(features)
 
 		# get tables
 		fc_list += self.get_tables()
@@ -597,7 +568,7 @@ class FileGDB:
 		return fdslist
 
 	'''
-	
+	Includes only  Simple Features
 	'''
 	def get_feature_classes(self, fds):
 		logging.debug("get_feature_classes")
@@ -605,10 +576,12 @@ class FileGDB:
 		features = []
 		if not  self.include_empty:
 			for f in fclist:
+				feature_desc = arcpy.Describe(f)	
+				feature_type = feature_desc.featureType
 				result = arcpy.GetCount_management(f)
 				count = int(result.getOutput(0))
-				logging.debug("Feature: {} , Count: {} ".format(  f, count  ))
-				if count > 0:
+				logging.debug("Feature: {} , Count: {}, feature_type:  ".format(  f, count , feature_type ))
+				if count > 0  and feature_type == 'Simple':
 					features.append(f)
 		else:
 			if fclist :
