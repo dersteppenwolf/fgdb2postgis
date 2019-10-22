@@ -124,15 +124,14 @@ class PostGIS:
 			-a_srs {} 	-t_srs {} 	-lco launder=yes  -lco fid=id  	-lco GEOMETRY_NAME=geom -lco OVERWRITE=YES  \
 			--config OGR_TRUNCATE YES -nln {} -lco SCHEMA={} --config PG_USE_COPY YES {}  '
 
-		
-
 		commands = []
-
 		for domain in filegdb.domain_tables:
 			#logging.debug( domain)
 			c = gdal_cmd.format(  self.conn_string, filegdb.workspace, domain["feature"], self.a_srs, self.t_srs, domain["feature"].lower(), 
 				domain["schema"] , ""  )
 			commands.append(c)
+
+		#TODO  tables
 
 		for feat in filegdb.standalone_features:
 			logging.debug( feat)
@@ -188,7 +187,8 @@ class PostGIS:
 			'fix_data_errors.sql',
 			'create_indexes.sql',
 			'create_constraints.sql',
-			'split_schemas.sql'
+			'split_schemas.sql', 
+			'views.sql'
 		]
 
 		for sql_file in sql_files:

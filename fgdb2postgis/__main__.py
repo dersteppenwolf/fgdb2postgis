@@ -43,6 +43,7 @@ def str2bool(v):
 def main():
 	parser = argparse.ArgumentParser(description='Convert a Filegeodatabase to Postgis.')
 	parser.add_argument('-v', '--version', action='store_true',help='Program version' )
+	parser.add_argument('-yml', '--yml', action='store_true',help='Create .yml and exit' )
 	parser.add_argument('--fgdb',  nargs='?',  help='Name of the filegeodatabase for conversion')
 	parser.add_argument('--database',   nargs='?',  help='Name of the postgis database to be created for conversion')
 	parser.add_argument('--host',   nargs='?',  help='Database host')
@@ -72,6 +73,10 @@ def main():
 		logging.debug("Begin Program....")
 		filegdb = FileGDB(args.fgdb, args.include_empty, args.lookup_tables_schema)
 		postgis = PostGIS(args.host, args.port, args.user, args.password, args.database, args.a_srs,  args.t_srs)
+
+		if(args.yml):
+			filegdb.create_yaml()
+			return
 
 		filegdb.process()
 		postgis.process(filegdb)

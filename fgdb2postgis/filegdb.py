@@ -102,6 +102,7 @@ class FileGDB:
 			self.process_domains()
 			self.process_subtypes()
 			self.process_relations()
+			self.process_materialized_views()
 			self.close_files()
 		except Exception as e:
 			logging.error(e)
@@ -151,6 +152,7 @@ class FileGDB:
 		self.f_create_constraints = open(path.join(self.sqlfolder_path, "create_constraints.sql"), "w")
 		self.f_find_data_errors = open(path.join(self.sqlfolder_path, "find_data_errors.sql"), "w")
 		self.f_fix_data_errors = open(path.join(self.sqlfolder_path, "fix_data_errors.sql"), "w")
+		self.f_views = open(path.join(self.sqlfolder_path, "views.sql"), "w")
 
 		self.write_headers()
 
@@ -165,6 +167,7 @@ class FileGDB:
 		self.f_create_constraints.close()
 		self.f_find_data_errors.close()
 		self.f_fix_data_errors.close()
+		self.f_views.close()
 
 	#-------------------------------------------------------------------------------
 	# Process domains
@@ -229,7 +232,6 @@ class FileGDB:
 	#
 	def create_constraints_referencing_domains(self, fc):
 		logging.debug( "create_constraints_referencing_domains: {} ".format(fc))
-		schema = fc["schema"]
 		layer =  fc["feature"]
 		dmcode = "Code"
 		dmcode_desc = "Description"
@@ -256,7 +258,7 @@ class FileGDB:
 					for dmfield, v3 in v2.iteritems():
 						if v3[1] is not None:
 							dmtable = self.lookup_prefix + v3[1].name
-							self.create_foreign_key_constraint(schema, layer, dmfield, dmtable, dmcode)
+							self.create_foreign_key_constraint(fc, dmfield, dmtable, dmcode)
 
 
 	#-------------------------------------------------------------------------------
@@ -335,8 +337,46 @@ class FileGDB:
 			self.domain_tables.append(subt)
 			
 			self.create_index(subtypes_table, field, self.lookup_tables_schema )
-			self.create_foreign_key_constraint(fc["schema"], layer, field, subtypes_table, field)
+			self.create_foreign_key_constraint(fc, field, subtypes_table, field)
 			#self.split_schemas(subt, self.lookup_tables_schema)
+
+	def process_materialized_views(self):
+		logging.debug( "process_materialized_views ..." )
+
+		#TODO  tables
+
+		for fc in self.standalone_features:
+			if len(fc["foreign_keys"]) > 0:
+				self.create_materialized_view(fc)
+
+		datasets = self.datasets
+		for d  in datasets:
+			logging.debug( d )
+			features = datasets[d] 
+			for fc in features:
+				if len(fc["foreign_keys"]) > 0:
+					self.create_materialized_view(fc)
+
+	
+	def create_materialized_view(self, fc):
+		logging.debug( "create_materialized_view: {} ".format(fc) )
+		sql_select = "select t.*   "
+		sql_from = "   \n from {}.{} as t ".format(fc["schema"], fc["feature"].lower())
+		counter = 0
+		for fk in fc["foreign_keys"]:
+			fk_alias = "ft"+str(counter)
+			sql_select += " , {}.description as {}_label ".format(fk_alias, fk["field"])
+			sql_from += " inner join {} as {} on ( t.{} = {}.{} ) ".format(fk["parent_table"],
+				 fk_alias, fk["field"], fk_alias, fk["pkey"]  )
+			#{'field': u'ruleid', 'pkey': 'code', 'parent_table': u'cartografia_100k.lut_limite_via_rep_rules'}
+			counter += 1
+
+		query = sql_select + sql_from
+		sql = 'CREATE MATERIALIZED VIEW {}.{}_mv AS \n {} \n WITH  DATA;\n'.format(fc["schema"], fc["feature"].lower(), query)
+		#logging.debug( "sql: {} ".format(sql)  )
+		self.write_it(self.f_views, "\n-- Feature")
+		self.write_it(self.f_views, sql)
+
 
 
 	#-------------------------------------------------------------------------------
@@ -383,10 +423,13 @@ class FileGDB:
 
 			logging.debug( " %s" % rel.name )
 			# print " %s -> %s" % (rel_origin_table, rel_destination_table)
-			schema = ""
+			# TODO TEST
+			fc = {}
+			fc["schema"] = ""
+			fc["feature"] = rel_destination_table
 
 			self.create_index(rel_origin_table, rel_primary_key, self.lookup_tables_schema )
-			self.create_foreign_key_constraint(schema, rel_destination_table, rel_foreign_key, rel_origin_table, rel_primary_key)
+			self.create_foreign_key_constraint(fc, rel_foreign_key, rel_origin_table, rel_primary_key)
 
 			# prcess data errors (fk)
 			str_data_errors_fk = '\\echo %s (%s) -> %s (%s);' % (rel_destination_table, rel_foreign_key, rel_origin_table, rel_primary_key)
@@ -520,8 +563,10 @@ class FileGDB:
 	#-------------------------------------------------------------------------------
 	# Create foreign key constraints
 	#
-	def create_foreign_key_constraint(self, schema, table_details, fkey, table_master, pkey):
-		logging.debug( "create_foreign_key_constraint: table_details : {} ".format(table_details))
+	def create_foreign_key_constraint(self, fc, fkey, table_master, pkey):
+		schema = fc["schema"]
+		table_details =  fc["feature"]
+		logging.debug( "create_foreign_key_constraint:   {} ".format(table_details))
 
 		fkey_name = ( "%s_%s_%s_fkey" % (table_details, fkey, table_master) ).lower()
 		logging.debug( "fkey_name:  {} ".format(fkey_name))
@@ -532,6 +577,11 @@ class FileGDB:
 			str_constraint = str_constraint.format(schema, table_details.lower(), fkey_name, fkey.lower(),
 					self.lookup_tables_schema,  table_master.lower(), pkey.lower())
 			self.write_it(self.f_create_constraints, str_constraint)
+
+			fc["foreign_keys"].append( { "field": fkey.lower(), 
+				"parent_table" :  self.lookup_tables_schema+"."+table_master.lower(),
+				"pkey" : pkey.lower()   }  )
+			
 
 	#-------------------------------------------------------------------------------
 	# Write headers to sql files
@@ -620,7 +670,8 @@ class FileGDB:
 			if feature_type != 'Simple':
 				continue
 			
-			feat = { "feature":f, "count": count, "feature_type":feature_type, "shapeType" :shapeType , "type": "feature_class", "dataset": fds   }
+			feat = { "feature":f, "count": count, "feature_type":feature_type, "shapeType" :shapeType , 
+					"type": "feature_class", "dataset": fds, "foreign_keys": []     }
 			#logging.debug(feat)
 			features.append(feat)
 
