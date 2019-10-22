@@ -98,10 +98,10 @@ class FileGDB:
 	def process(self):
 		try:
 			self.open_files()
+			self.process_schemas()
 			self.process_domains()
 			self.process_subtypes()
 			self.process_relations()
-			self.process_schemas()
 			self.close_files()
 		except Exception as e:
 			logging.error(e)
@@ -221,15 +221,16 @@ class FileGDB:
 		# create index
 		dom = { "feature":domain_table,  "type": "table" , "schema" : self.lookup_tables_schema   }
 		self.domain_tables.append( dom ) 
-		self.create_index(domain_table, domain_field)
+		self.create_index(domain_table, domain_field, self.lookup_tables_schema )
 		#self.split_schemas(dom, self.lookup_tables_schema)
 
 	#-------------------------------------------------------------------------------
 	# Create foraign key constraints to tables referencing domain tables
 	#
 	def create_constraints_referencing_domains(self, fc):
-		layer = fc["feature"]
-		logging.debug( "create_constraints_referencing_domains: {} ".format(layer))
+		logging.debug( "create_constraints_referencing_domains: {} ".format(fc))
+		schema = fc["schema"]
+		layer =  fc["feature"]
 		dmcode = "Code"
 		dmcode_desc = "Description"
 
@@ -255,7 +256,7 @@ class FileGDB:
 					for dmfield, v3 in v2.iteritems():
 						if v3[1] is not None:
 							dmtable = self.lookup_prefix + v3[1].name
-							self.create_foreign_key_constraint(layer, dmfield, dmtable, dmcode)
+							self.create_foreign_key_constraint(schema, layer, dmfield, dmtable, dmcode)
 
 
 	#-------------------------------------------------------------------------------
@@ -333,8 +334,8 @@ class FileGDB:
 			subt = { "feature":subtypes_table,  "type": "table" , "schema" : self.lookup_tables_schema   }
 			self.domain_tables.append(subt)
 			
-			self.create_index(subtypes_table, field)
-			self.create_foreign_key_constraint(layer, field, subtypes_table, field)
+			self.create_index(subtypes_table, field, self.lookup_tables_schema )
+			self.create_foreign_key_constraint(fc["schema"], layer, field, subtypes_table, field)
 			#self.split_schemas(subt, self.lookup_tables_schema)
 
 
@@ -382,9 +383,10 @@ class FileGDB:
 
 			logging.debug( " %s" % rel.name )
 			# print " %s -> %s" % (rel_origin_table, rel_destination_table)
+			schema = ""
 
-			self.create_index(rel_origin_table, rel_primary_key)
-			self.create_foreign_key_constraint(rel_destination_table, rel_foreign_key, rel_origin_table, rel_primary_key)
+			self.create_index(rel_origin_table, rel_primary_key, self.lookup_tables_schema )
+			self.create_foreign_key_constraint(schema, rel_destination_table, rel_foreign_key, rel_origin_table, rel_primary_key)
 
 			# prcess data errors (fk)
 			str_data_errors_fk = '\\echo %s (%s) -> %s (%s);' % (rel_destination_table, rel_foreign_key, rel_origin_table, rel_primary_key)
@@ -507,18 +509,18 @@ class FileGDB:
 	#-------------------------------------------------------------------------------
 	# Create indexes
 	#
-	def create_index(self, table, field):
+	def create_index(self, table, field, schema):
 		idx_name = ( "%s_%s_idx" % (table, field) ).lower()
 
 		if idx_name not in self.indexes:
 			self.indexes.append(idx_name)
-			str_index = "CREATE UNIQUE INDEX \"%s\" ON \"%s\" (\"%s\"); \n" % (idx_name, table.lower(), field.lower())
+			str_index = "CREATE UNIQUE INDEX {} ON {}.{}  ({}); \n".format (idx_name,schema,table.lower(), field.lower())
 			self.write_it(self.f_create_indexes, str_index)
 
 	#-------------------------------------------------------------------------------
 	# Create foreign key constraints
 	#
-	def create_foreign_key_constraint(self, table_details, fkey, table_master, pkey):
+	def create_foreign_key_constraint(self, schema, table_details, fkey, table_master, pkey):
 		logging.debug( "create_foreign_key_constraint: table_details : {} ".format(table_details))
 
 		fkey_name = ( "%s_%s_%s_fkey" % (table_details, fkey, table_master) ).lower()
@@ -526,8 +528,9 @@ class FileGDB:
 
 		if fkey_name not in self.constraints:
 			self.constraints.append(fkey_name)
-			str_constraint = 'ALTER TABLE "%s" ADD CONSTRAINT "%s" FOREIGN KEY ("%s") REFERENCES "%s" ("%s") NOT VALID; \n'
-			str_constraint = str_constraint % (table_details.lower(), fkey_name, fkey.lower(), table_master.lower(), pkey.lower())
+			str_constraint = 'ALTER TABLE {}.{} ADD CONSTRAINT {} FOREIGN KEY ({}) REFERENCES {}.{} ({}) NOT VALID; \n'
+			str_constraint = str_constraint.format(schema, table_details.lower(), fkey_name, fkey.lower(),
+					self.lookup_tables_schema,  table_master.lower(), pkey.lower())
 			self.write_it(self.f_create_constraints, str_constraint)
 
 	#-------------------------------------------------------------------------------
