@@ -13,14 +13,14 @@ To recreate the same experience of the domains and subtypes in QGIS using the ou
 
 Now you can have domain experience in QGIS that is stored in the database and not in the QGIS project.
 
-.. note::
-   This library requires GDAL/OGR libraries and ESRI ArcGIS to be installed in the system.
 
 Installation
 ------------
+This library requires GDAL/OGR libraries and ESRI ArcGIS to be installed in the system.
+
 This package should be installed only on windows systems because of ArcGIS (Arcpy) limitation.
 
-
+This tool has been  tested with PostgreSQL 11 ,  PostGIS 2.5, Arcgis Desktop 10.6.1 and  gdal 2.4.0
 
 
 Install required packages::
@@ -119,7 +119,6 @@ Tables:
 
 
 Tip:
-  * This tool is tested with PostgreSQL v 11 ,  PostGIS v 2.5, Arcgis desktop 10.6.1, gdal 2.4.0
   * Currently the tool support only Latin Name fields and suptypes, domain values can be in any   language, make sure to set the corresponding windows domain
   * DB user must be superuser :
 
@@ -138,12 +137,13 @@ Warning:
   * The target postgis database is created by te program
   * The tool only includes Simple features (Polygons, polylines, and points representing objects or places that have area. See https://desktop.arcgis.com/es/arcmap/latest/analyze/arcpy-functions/featureclass-properties.htm  ) 
   * If you do not use the python distribution included in Arcgis Desktop you must have into account the  ArcGIS Desktop and Numpy compability (see https://support.esri.com/en/technical-article/000013224): 
-    *  10.7.1 - Python 2.7.16 and NumPy 1.9.3
-    *  10.7 - Python 2.7.15 and NumPy 1.9.3
-    *  10.6.1 - Python 2.7.14 and NumPy 1.9.3
-    *  10.6 - Python 2.7.14 and NumPy 1.9.3
-    *  10.5.1 - Python 2.7.13 and NumPy 1.9.3
-    *  10.5 - Python 2.7.12 and NumPy 1.9.3
+
+      *  10.7.1 - Python 2.7.16 and NumPy 1.9.3
+      *  10.7 - Python 2.7.15 and NumPy 1.9.3
+      *  10.6.1 - Python 2.7.14 and NumPy 1.9.3
+      *  10.6 - Python 2.7.14 and NumPy 1.9.3
+      *  10.5.1 - Python 2.7.13 and NumPy 1.9.3
+      *  10.5 - Python 2.7.12 and NumPy 1.9.3
 
 
 Credits
