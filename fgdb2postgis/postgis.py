@@ -36,7 +36,7 @@ class PostGIS:
 		logging.debug(  ' Password: %s' % self.password  )
 		self.create_database()
 
-	def process(self):
+	def process(self, filegdb):
 		self.connect()
 		self.update_views()
 		self.create_schemas(filegdb)
@@ -94,10 +94,6 @@ class PostGIS:
 		logging.debug(  "Disconnected from database." )
 
 	def load_database(self, filegdb):
-
-		
-
-
 		logging.debug(  "Loading database tables ...")
 
 		cmd = 'ogr2ogr -f "PostgreSQL" "PG:%s" 	-overwrite -progress -skipfailures -append \

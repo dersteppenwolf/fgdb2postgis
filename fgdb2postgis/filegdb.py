@@ -25,9 +25,10 @@ except ImportError:
 yaml = YAML()
 
 class FileGDB:
-	def __init__(self, workspace, include_empty):
+	def __init__(self, workspace, include_empty, lookup_tables_schema):
 		self.workspace = workspace
 		self.include_empty = include_empty
+		self.lookup_tables_schema = lookup_tables_schema
 		self.workspace_path = ""
 		self.sqlfolder_path = ""
 		self.yamlfile_path = ""
@@ -46,6 +47,7 @@ class FileGDB:
 		self.setenv()
 		self.parse_yaml()
 		self.datasets = self.get_feature_datasets()
+		self.tables_list = self.get_tables()
 		
 
 	#-------------------------------------------------------------------------------
@@ -112,8 +114,8 @@ class FileGDB:
 					self.tables = value_items
 			
 		# lookup_tables is a default schema and it will host subtypes, domains
-		if 'lookup_tables' not in self.schemas:
-			self.schemas.append('lookup_tables')
+		if self.lookup_tables_schema not in self.schemas:
+			self.schemas.append(self.lookup_tables_schema)
 
 	#-------------------------------------------------------------------------------
 	# Open sql files
@@ -163,9 +165,7 @@ class FileGDB:
 			self.create_domain_table(domain)
 
 		logging.debug( "create fk constraints for data tables referencing domain tables ...")
-		tables_list = self.get_tables()
-		
-		for table in tables_list:
+		for table in self.tables_list:
 			self.create_constraints_referencing_domains(table)
 
 
@@ -203,7 +203,7 @@ class FileGDB:
 
 		# create index
 		self.create_index(domain_table, domain_field)
-		self.split_schemas(domain_table, "lookup_tables")
+		self.split_schemas(domain_table, self.lookup_tables_schema)
 
 	#-------------------------------------------------------------------------------
 	# Create foraign key constraints to tables referencing domain tables
@@ -250,9 +250,7 @@ class FileGDB:
 		self.write_it(self.f_split_schemas, "\n-- Subtypes")
 
 		# create subtypes table for tables
-		tables_list = self.get_tables()
-
-		for table in tables_list:
+		for table in self.tables_list:
 			self.create_subtypes_table(table)
 
 		# create subtypes table for stand-alone featureclasses
@@ -315,7 +313,7 @@ class FileGDB:
 
 			self.create_index(subtypes_table, field)
 			self.create_foreign_key_constraint(layer, field, subtypes_table, field)
-			self.split_schemas(subtypes_table, "lookup_tables")
+			self.split_schemas(subtypes_table, self.lookup_tables_schema)
 
 
 	#-------------------------------------------------------------------------------
@@ -398,12 +396,9 @@ class FileGDB:
 			features = self.get_feature_classes(fds)
 			fc_list.extend(features)
 
-		# get tables
-		fc_list += self.get_tables()
-
 		# create relationship classes set
 		relClasses = set()
-		for i, fc in enumerate(fc_list):
+		for i, fc in enumerate(self.tables_list):
 			#logging.debug(fc)
 			desc = arcpy.Describe(fc)
 			#logging.debug(desc.dataType)
@@ -546,10 +541,7 @@ class FileGDB:
 		fcdict['FeatureClasses'].update({'public': fclist})
 
 		# tables
-		tableslist = self.get_tables()
-		if tableslist != None:
-			tableslist.sort()
-		tablesdict['Tables'].update({'public': tableslist})
+		tablesdict['Tables'].update({'public': self.tables_list})
 
 		# schemas
 		schemasdict.update({'Schemas': fdslist})
@@ -573,6 +565,7 @@ class FileGDB:
 		logging.debug("get_feature_datasets")
 		fdslist = arcpy.ListDatasets("*", "Feature")
 		fdslist.sort()
+		logging.debug(fdslist )
 		return fdslist
 
 	'''

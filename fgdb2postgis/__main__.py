@@ -6,7 +6,7 @@
  # Copyright: Cartologic 2017
  #
  ##
-import getopt, sys, logging , traceback
+import getopt, sys, logging , traceback, argparse
 from .filegdb import FileGDB
 from .postgis import PostGIS
 from .version import get_version
@@ -23,65 +23,41 @@ def printError(e):
     logging.error( tbinfo )
     logging.error("****************************************************************************************************************")
     
-def show_usage():
-	print "Usage:"
-	print "  fgdb2postgis.py -v"
-	print "  fgdb2postgis.py -h"
-	print "  fgdb2postgis.py -f filegdb"
-	print "                  --database=database name"
-	print "                  --a_srs=a_srs"
-	print "                  --t_srs=t_srs"
-	print "                  --host=host"
-	print "                  --port=port"
-	print "                  --user=user"
-	print "                  --password=password"
-	print "                  --include_empty=False/True"
 
-	sys.exit(1)
+def str2bool(v):
+    if isinstance(v, bool):
+       return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
 
-
-print(sys.argv)
-print(len(sys.argv) )
-if len(sys.argv) < 10:
-	show_usage()
-else:
-	try:
-		options, remainder = getopt.getopt(sys.argv[1:], 'hvf:p:', ['fgdb=', 'database=', 'a_srs=', 't_srs=', 'host=', 'port=', 'user=', 'password=', 'include_empty='])
-	except getopt.GetoptError as err:
-		print str(err)
-		show_usage()
-
-for opt, arg in options:
-	if opt == '-h':
-		show_usage()
-	elif opt == '-v':
-		show_version()
-	elif opt in ('-f'):
-		fgdb = arg
-	elif opt in ('--database'):
-		database = arg
-	elif opt in ('--a_srs'):
-		a_srs = arg
-	elif opt in ('--t_srs'):
-		t_srs = arg
-	elif opt in ('--host'):
-		host = arg
-	elif opt in ('--port'):
-		port = arg
-	elif opt in ('--user'):
-		user = arg
-	elif opt in ('--password'):
-		password = arg
-	
-	if opt in ('--include_empty'):
-		include_empty = arg
-	else:
-		include_empty = False
 
 #-------------------------------------------------------------------------------
 # Main - Instantiate the required database objects and perform the conversion
 #
 def main():
+	parser = argparse.ArgumentParser(description='Convert a Filegeodatabase to Postgis.')
+	parser.add_argument('-v', '--version', action='store_true',help='Program version' )
+	parser.add_argument('--fgdb',  nargs='?',  help='Name of the filegeodatabase for conversion')
+	parser.add_argument('--database',   nargs='?',  help='Name of the postgis database to be created for conversion')
+	parser.add_argument('--host',   nargs='?',  help='Database host')
+	parser.add_argument('--port', type=int, nargs='?',  help='Postgresql port')
+	parser.add_argument('--user',  nargs='?',  help='database user ')
+	parser.add_argument('--password',  nargs='?',  help='database password')
+	parser.add_argument('--include_empty', type=str2bool,  nargs='?', default=False , help='Include empty tables and features. Default False')
+	parser.add_argument('--lookup_tables_schema',  nargs='?', default='lookup_tables',   help='Name of the schema for lookup tables. Default:lookup_tables')
+	parser.add_argument('--a_srs',  nargs='?',  help='Assign an output SRS.')
+	parser.add_argument('--t_srs',  nargs='?',  help='Reproject/transform to this SRS on output.')
+	args = parser.parse_args()
+	#print(args)
+
+	if(args.version):
+		show_version()
+		return
+
 	logFormat = '%(asctime)-15s %(name)-12s %(levelname)-8s %(message)s'
 	logfile = "output.log"
 	logging.basicConfig(level=logging.DEBUG, format=logFormat, filename=logfile,  filemode='w' )
@@ -90,15 +66,13 @@ def main():
 	logging.debug("Begin Program....")
 	logging.debug("***********************************")
 	try: 
-		logging.debug("fgdb:{},  include_empty:{}  ".format(   fgdb, a_srs, include_empty          ))
-		logging.debug("host:{},  port:{},  user:{} ,  password:{},  database:{}, a_srs:{},   t_srs:{}  ".format(   host, port, user, password, database, a_srs,  t_srs  ))
-
+		logging.debug(args)
 		logging.debug("Begin Program....")
-		filegdb = FileGDB(fgdb, include_empty)
-		postgis = PostGIS(host, port, user, password, database, a_srs,  t_srs)
+		filegdb = FileGDB(args.fgdb, args.include_empty, args.lookup_tables_schema)
+		postgis = PostGIS(args.host, args.port, args.user, args.password, args.database, args.a_srs,  args.t_srs)
 
 		filegdb.process()
-		postgis.process()
+		postgis.process(filegdb)
 		
 		filegdb.cleanup()
 	except Exception as e:
