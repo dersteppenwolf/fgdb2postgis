@@ -120,20 +120,21 @@ Command line options::
 .. tip::
   * This tool is tested with PostgreSQL v 9.5 and PostGIS v 2.2
   * Currently the tool support only Latin Name fields and suptypes, domain values can be in any   language, make sure to set the corresponding windows domain
-  * DB user must have access to read an create objects on information_schema:
+  * DB user must be superuser :
 
+    CREATE USER user_migrate  WITH PASSWORD 'xxxxx' LOGIN SUPERUSER INHERIT  CREATEDB CREATEROLE  NOREPLICATION;
 
+  * if you want to drop the migration user use: 
+    
     revoke all ON SCHEMA information_schema from user_migrate ;
     revoke all ON ALL TABLES IN SCHEMA information_schema from  user_migrate;
     drop user user_migrate;
-    
-    CREATE USER user_migrate  WITH PASSWORD 'xxxxx' LOGIN SUPERUSER INHERIT  CREATEDB CREATEROLE  NOREPLICATION;
-    
 
-.. warning::
-  * DO NOT apply this tool in a production postgis database!
-  * The target postgis database should exists and be EMPTY.
-  * The tool will OVERWRITE any tables having the same name with the tables in the file geodatabase.
+Warning:
+  * DO NOT apply this tool in a production postgis database!, insted use a staging database
+  * The target postgis database is created by te program
+  * The tool only includes Simple features (Polygons, polylines, and points representing objects or places that have area. See https://desktop.arcgis.com/es/arcmap/latest/analyze/arcpy-functions/featureclass-properties.htm  ) 
+
 
 Credits
 -------

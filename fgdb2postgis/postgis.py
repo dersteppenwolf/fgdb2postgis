@@ -112,7 +112,7 @@ class PostGIS:
 		elif shapeType == 'Point':
 			gdal_type = "POINT"
 		elif shapeType == 'Multipoint':
-			gdal_type = "MULTILINESTRING"
+			gdal_type = "MULTIPOINT"
 
 		return "  -nlt  {}  ".format(gdal_type)
 
