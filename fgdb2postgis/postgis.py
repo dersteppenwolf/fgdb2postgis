@@ -1,9 +1,11 @@
+#-*- coding: UTF-8 -*-
 ##
  # postgis.py
  #
  # Description: Use ogr2ogr to convert file geodatabase to postgis
  #              Apply number of sql scripts to create indexes and foreign key constraints
  # Author: George Ioannou
+ # Modified by:  Juan Carlos Méndez
  # Copyright: Cartologic 2017
  #
  ##

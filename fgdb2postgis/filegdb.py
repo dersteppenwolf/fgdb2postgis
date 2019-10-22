@@ -1,13 +1,16 @@
+#-*- coding: UTF-8 -*-
+
 ##
  # filegdb.py
  #
  # Description: Read file geodatabase, create tables for subtypes and domains
  #              Prepare sql scripts for indexes and foreign key constraints
  # Author: George Ioannou
+ # Modified by:  Juan Carlos Méndez
  # Copyright: Cartologic 2017
  #
  ##
-import os, logging
+import os, logging, sys, traceback
 # import yaml
 from ruamel.yaml import YAML
 
@@ -46,8 +49,17 @@ class FileGDB:
 		self.init_paths()
 		self.setenv()
 		self.parse_yaml()
-		self.datasets = self.get_feature_datasets()
+		self.datasets = {} 
+		ds = self.get_feature_datasets()
+		for d in ds:
+			self.datasets[d] = self.get_feature_classes(d) 
+
 		self.tables_list = self.get_tables()
+		self.standalone_features = self.get_feature_classes(None) 
+
+		logging.debug("tables_list: {} ".format(  self.tables_list ) )
+		logging.debug("datasets: {} ".format(  self.datasets ) )
+		
 		
 
 	#-------------------------------------------------------------------------------
@@ -83,12 +95,18 @@ class FileGDB:
 		arcpy.env.overwriteOutput = True
 
 	def process(self):
-		self.open_files()
-		self.process_domains()
-		self.process_subtypes()
-		self.process_relations()
-		self.process_schemas()
-		self.close_files()
+		try:
+			self.open_files()
+			self.process_domains()
+			self.process_subtypes()
+			self.process_relations()
+			self.process_schemas()
+			self.close_files()
+		except Exception as e:
+			logging.error(e)
+			tb = sys.exc_info()[2]
+			tbinfo = traceback.format_tb(tb)[0]
+			logging.error( tbinfo )
 
 	#-------------------------------------------------------------------------------
 	# Parse the yaml file and map data to schemas
@@ -170,16 +188,14 @@ class FileGDB:
 
 
 		logging.debug( "stand-alone feature classes ...")
-		fc_list = self.get_feature_classes(None) 
-
-		for fc in fc_list:
+		for fc in self.standalone_features:
 			self.create_constraints_referencing_domains(fc)
 
 		logging.debug( "features inside datasets...")
 		logging.debug( self.datasets)
 		for fds in self.datasets:
 			logging.debug( "fds : {} ".format(fds) )
-			fc_list = self.get_feature_classes(fds) 
+			fc_list = self.datasets[fds] 
 			for f in fc_list:
 				self.create_constraints_referencing_domains(f)
 		logging.debug( "***********************************************************")
@@ -208,7 +224,8 @@ class FileGDB:
 	#-------------------------------------------------------------------------------
 	# Create foraign key constraints to tables referencing domain tables
 	#
-	def create_constraints_referencing_domains(self, layer):
+	def create_constraints_referencing_domains(self, fc):
+		layer = fc["feature"]
 		logging.debug( "create_constraints_referencing_domains: {} ".format(layer))
 		dmcode = "Code"
 		dmcode_desc = "Description"
@@ -254,22 +271,20 @@ class FileGDB:
 			self.create_subtypes_table(table)
 
 		# create subtypes table for stand-alone featureclasses
-		fc_list = self.get_feature_classes(None)
-
-		for fc in fc_list:
+		for fc in self.standalone_features:
 			self.create_subtypes_table(fc)
 
 		# create subtypes table for featureclasses in datasets
 		for fds in self.datasets:
-			fc_list = self.get_feature_classes(fds)
-				
+			fc_list = self.datasets[fds] 
 			for f in fc_list:
 				self.create_subtypes_table(f)
 
 	#-------------------------------------------------------------------------------
 	# Create subtypes table for layer/field and insert records (list of values)
 	#
-	def create_subtypes_table(self, layer):
+	def create_subtypes_table(self, fc):
+		layer = fc["feature"]
 		subtypes_dict = arcpy.da.ListSubtypes(layer)
 
 		subtype_fields = {key: value['SubtypeField'] for key, value in subtypes_dict.iteritems()}
@@ -389,11 +404,11 @@ class FileGDB:
 	def get_relationship_classes(self):
 
 		# get featureclasses outside of datasets
-		fc_list =  self.get_feature_classes(None)
+		fc_list = self.standalone_features		
 
 		# get featureclasses within datasets
 		for fds in self.datasets:
-			features = self.get_feature_classes(fds)
+			features = self.datasets[fds] 
 			fc_list.extend(features)
 
 		# create relationship classes set
@@ -424,6 +439,7 @@ class FileGDB:
 		# create schemas
 		for schema in self.schemas:
 			schema = schema.lower()
+			logging.debug("schema: {}  ".format(schema) )
 			if schema == 'public':
 				continue
 
@@ -436,13 +452,13 @@ class FileGDB:
 		self.write_it(self.f_split_schemas, "\n-- FeatureDatasets:")
 		logging.debug( " FeatureDatasets" )
 		for dataset, schema  in self.feature_datasets.items():
+			logging.debug("schema: {} , dataset: {} ".format(schema, dataset) )
 			schema = schema[0].lower()
 			logging.debug("schema: {} , dataset: {} ".format(schema, dataset) )
 			if schema == 'public':
 				continue
 			
-			fc_list = self.get_feature_classes(dataset) 
-			fc_list.sort()
+			fc_list =self.datasets[dataset] 
 			for fc in fc_list:
 				logging.debug("fc: {} , schema: {} ".format(fc, schema) )
 				self.split_schemas(fc, schema)
@@ -472,7 +488,8 @@ class FileGDB:
 	#-------------------------------------------------------------------------------
 	# Compose and write sql to alter the schema of a table
 	#
-	def split_schemas(self, table, schema):
+	def split_schemas(self, fc, schema):
+		table = fc["feature"]
 		str_split_schemas = "ALTER TABLE \"%s\" SET SCHEMA \"%s\";" % (table.lower(), schema.lower())
 		self.write_it(self.f_split_schemas, str_split_schemas)
 
@@ -535,9 +552,9 @@ class FileGDB:
 				fdsdict['FeatureDatasets'].update({fds: [fds]})
 
 		# featureclasses in root
-		fclist = self.get_feature_classes(None)
-		if fclist != None:
-			fclist.sort()
+		fclist =[]
+		for f in self.standalone_features:
+			fclist.append(f["feature"])
 		fcdict['FeatureClasses'].update({'public': fclist})
 
 		# tables
@@ -575,19 +592,25 @@ class FileGDB:
 		logging.debug("get_feature_classes")
 		fclist = arcpy.ListFeatureClasses("*", "", fds)
 		features = []
-		if not  self.include_empty:
-			for f in fclist:
-				feature_desc = arcpy.Describe(f)	
-				feature_type = feature_desc.featureType
-				result = arcpy.GetCount_management(f)
-				count = int(result.getOutput(0))
-				logging.debug("Feature: {} , Count: {}, feature_type: {} ".format(  f, count , feature_type ))
-				if count > 0  and feature_type == 'Simple':
-					features.append(f)
-		else:
-			if fclist :
-				features = fclist
-		features.sort()
+		for f in fclist:
+			feature_desc = arcpy.Describe(f)	
+			feature_type = feature_desc.featureType
+			shapeType =  feature_desc.shapeType
+			result = arcpy.GetCount_management(f)
+			count = int(result.getOutput(0))
+			#logging.debug("Feature: {} , Count: {}, feature_type: {}, shapeType: {}  ".format(  f, count , feature_type , shapeType))
+
+			if count == 0 and not  self.include_empty:
+				continue
+
+			if feature_type != 'Simple':
+				continue
+			
+			feat = { "feature":f, "count": count, "feature_type":feature_type, "shapeType" :shapeType , "type": "feature_class"   }
+			#logging.debug(feat)
+			features.append(feat)
+
+		features.sort(key=lambda x: x["feature"] )
 		logging.debug(features )
 		return features
 
@@ -598,19 +621,18 @@ class FileGDB:
 		logging.debug("get_tables")
 		tableslist = arcpy.ListTables("*")
 		tables = []
-		if not  self.include_empty:
-			for t in tableslist:
-				result = arcpy.GetCount_management(t)
-				count = int(result.getOutput(0))
-				logging.debug("Table: {} , Count: {} ".format( t, count  ))
-				if t.startswith(self.lookup_prefix):
-					continue
-				if count > 0:
-					tables.append(t)
-		else:
-			tables = tableslist
+		for t in tableslist:
+			result = arcpy.GetCount_management(t)
+			count = int(result.getOutput(0))
+			#logging.debug("Table: {} , Count: {} ".format( t, count  ))
+			if t.startswith(self.lookup_prefix):
+				continue
+			if count == 0 and not  self.include_empty:
+				continue
+			feat = { "feature":t, "count": count,  "type": "table"   }
+			tables.append(t)
 
-		tables.sort()
+		tables.sort(key=lambda x: x["feature"] )
 		logging.debug(tables )
 		return tables
 

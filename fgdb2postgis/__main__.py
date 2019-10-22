@@ -1,8 +1,10 @@
+#-*- coding: UTF-8 -*-
 ##
  # __main__.py
  #
  # Description: Export, Transform and load data from ESRI File Geodatabase to PostGIS
- # Author: George Ioannou
+ # Author: George Ioannou, 
+ # Modified by:  Juan Carlos Méndez
  # Copyright: Cartologic 2017
  #
  ##
