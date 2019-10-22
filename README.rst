@@ -45,9 +45,22 @@ Install fgdb2postgis::
 Usage
 -----
 
+Command line options::
+
+Show help: 
+
+    fgdb2postgis -h
+
 Generate the yml file and exit: 
 
   fgdb2postgis -yml --fgdb sample.gdb
+
+Convert fgdb: 
+
+    fgdb2postgis --fgdb mygdb.gdb  --database=migratetdb  --host=localhost  --port=5432  --user=user_migrate  --password=user_migrate --a_srs=EPSG:4686   --t_srs=EPSG:4686 --include_empty=False --lookup_tables_schema=mylookuptableschema
+
+
+
 
 Create a yaml file mapping the file geodatabase's feature datasets, 
 feature classes and tables to postgresql's schemas. It is required that the yaml file have the same 
@@ -105,29 +118,20 @@ FeatureClasses:
 Tables:
   Mapping of the geodatabase's tables to the schemas of target postgis database
 
-Command line options::
 
-    fgdb2postgis -h
-    fgdb2postgis -f filegdb
-                 -p database name
-                 --a_srs=a_srs
-                 --t_srs=t_srs
-                 --host=host
-                 --port=port
-                 --user=user
-                 --password=password
-
-.. tip::
-  * This tool is tested with PostgreSQL v 9.5 and PostGIS v 2.2
+Tip:
+  * This tool is tested with PostgreSQL v 11 ,  PostGIS v 2.5, Arcgis desktop 10.6.1, gdal 2.4.0
   * Currently the tool support only Latin Name fields and suptypes, domain values can be in any   language, make sure to set the corresponding windows domain
   * DB user must be superuser :
 
     CREATE USER user_migrate  WITH PASSWORD 'xxxxx' LOGIN SUPERUSER INHERIT  CREATEDB CREATEROLE  NOREPLICATION;
 
   * if you want to drop the migration user use: 
-    
+
     revoke all ON SCHEMA information_schema from user_migrate ;
+
     revoke all ON ALL TABLES IN SCHEMA information_schema from  user_migrate;
+    
     drop user user_migrate;
 
 Warning:
