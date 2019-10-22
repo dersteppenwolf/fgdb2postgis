@@ -612,44 +612,54 @@ class FileGDB:
 		out_file.write(string + "\n")
 
 	def create_yaml(self):
-		logging.debug("create_yaml...")
-		# initialize dictionaries
-		schemasdict = {}
-		fdsdict = {'FeatureDatasets': {}}
-		fcdict = {'FeatureClasses': {}}
-		tablesdict = {'Tables': {}}
+		try:
+			logging.debug("create_yaml...")
+			# initialize dictionaries
+			schemasdict = {}
+			fdsdict = {'FeatureDatasets': {}}
+			fcdict = {'FeatureClasses': {}}
+			tablesdict = {'Tables': {}}
 
-		# feature datasets
-		fdslist = self.get_feature_datasets()
-		if fdslist != None:
-			fdslist.sort()
-			for fds in fdslist:
-				fdsdict['FeatureDatasets'].update({fds: [fds]})
+			# feature datasets
+			fdslist = self.get_feature_datasets()
+			if fdslist != None:
+				fdslist.sort()
+				for fds in fdslist:
+					fdsdict['FeatureDatasets'].update({fds: [fds]})
 
-		# featureclasses in root
-		fclist =[]
-		if fdslist != self.standalone_features:
-			for f in self.standalone_features:
-				fclist.append(f["feature"])
-		fcdict['FeatureClasses'].update({'public': fclist})
+			# featureclasses in root
+			if not  hasattr(self, 'standalone_features'):
+				self.standalone_features = self.get_feature_classes(None) 
+			fclist =[]
+			if fdslist != self.standalone_features:
+				for f in self.standalone_features:
+					fclist.append(f["feature"])
+			fcdict['FeatureClasses'].update({'public': fclist})
 
-		# tables
-		tablesdict['Tables'].update({'public': self.tables_list})
+			# tables
+			if not  hasattr(self, 'tables_list'):
+				self.tables_list = self.get_tables()
+			tablesdict['Tables'].update({'public': self.tables_list})
 
-		# schemas
-		schemasdict.update({'Schemas': fdslist})
+			# schemas
+			schemasdict.update({'Schemas': fdslist})
 
-		with open(self.yamlfile_path, 'w') as outfile:
-			yaml.dump(schemasdict, outfile)
+			with open(self.yamlfile_path, 'w') as outfile:
+				yaml.dump(schemasdict, outfile)
 
-		with open(self.yamlfile_path, 'a') as outfile:
-			yaml.dump(fdsdict, outfile)
+			with open(self.yamlfile_path, 'a') as outfile:
+				yaml.dump(fdsdict, outfile)
 
-		with open(self.yamlfile_path, 'a') as outfile:
-			yaml.dump(fcdict, outfile)
+			with open(self.yamlfile_path, 'a') as outfile:
+				yaml.dump(fcdict, outfile)
 
-		with open(self.yamlfile_path, 'a') as outfile:
-			yaml.dump(tablesdict, outfile)
+			with open(self.yamlfile_path, 'a') as outfile:
+				yaml.dump(tablesdict, outfile)
+		except Exception as e:
+			logging.error(e)
+			tb = sys.exc_info()[2]
+			tbinfo = traceback.format_tb(tb)[0]
+			logging.error( tbinfo )
 
 	'''
 
