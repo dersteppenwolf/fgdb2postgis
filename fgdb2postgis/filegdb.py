@@ -10,7 +10,7 @@
  # Copyright: Cartologic 2017
  #
  ##
-import os, logging, sys, traceback
+import os, logging, sys, traceback, copy
 # import yaml
 from ruamel.yaml import YAML
 
@@ -42,27 +42,12 @@ class FileGDB:
 		self.indexes = []
 		self.constraints = []
 		self.datasets = []
-
 		self.lookup_prefix = "lut_"
-
 		self.info()
 		self.init_paths()
 		self.setenv()
 		
-		self.datasets = {} 
-		ds = self.get_feature_datasets()
-		for d in ds:
-			self.datasets[d] = self.get_feature_classes(d) 
-
-		self.tables_list = self.get_tables()
-		self.standalone_features = self.get_feature_classes(None) 
-		self.domain_tables = []
-
-		logging.debug("tables_list: {} ".format(  self.tables_list ) )
-		logging.debug("datasets: {} ".format(  self.datasets ) )
 		
-		
-
 	#-------------------------------------------------------------------------------
 	# Initialize file geodatabase environment
 	#
@@ -97,6 +82,7 @@ class FileGDB:
 
 	def process(self):
 		try:
+			self.init()
 			self.parse_yaml()
 			self.open_files()
 			self.process_schemas()
@@ -110,6 +96,21 @@ class FileGDB:
 			tb = sys.exc_info()[2]
 			tbinfo = traceback.format_tb(tb)[0]
 			logging.error( tbinfo )
+
+	def init(self):
+		logging.debug("init..." )
+		self.datasets = {} 
+		ds = self.get_feature_datasets()
+		for d in ds:
+			self.datasets[d] = self.get_feature_classes(d) 
+
+		self.tables_list = self.get_tables()
+		self.standalone_features = self.get_feature_classes(None) 
+		self.domain_tables = []
+
+		logging.debug("tables_list: {} ".format(  self.tables_list ) )
+		logging.debug("datasets: {} ".format(  self.datasets ) )
+
 
 	#-------------------------------------------------------------------------------
 	# Parse the yaml file and map data to schemas
@@ -385,12 +386,14 @@ class FileGDB:
 	# Create necessary indexes and foreign key constraints to support each relation
 	#
 	def process_relations(self):
+		logging.debug( "*************************************" )
 		logging.debug( "Processing relations ..." )
 
 		self.write_it(self.f_create_indexes, "\n-- Relations (tables and feature classes)")
 		self.write_it(self.f_create_constraints, "\n-- Relations (tables and feature classes)")
 
 		relClassSet = self.get_relationship_classes()
+		logging.debug( "relClassSet: {} ".format(relClassSet) )
 
 		for relClass in relClassSet:
 			rel = arcpy.Describe(relClass)
@@ -401,16 +404,6 @@ class FileGDB:
 			rel_destination_table = rel.destinationClassNames[0]
 
 			logging.debug( " rel_origin_table : {} , rel_destination_table : {}".format(rel_origin_table, rel_destination_table) )
-
-
-			desc_destination = arcpy.Describe(rel_destination_table)
-			logging.debug(desc_destination.dataType)
-			if desc_destination.dataType in ('FeatureClass'):
-				feature_type = desc_destination.featureType
-				logging.debug(feature_type)
-				# ignore annotations 
-				if feature_type != 'Simple':
-					continue
 			
 			rel_primary_key = "id"
 			rel_foreign_key = rel.originClassKeys[1][0]
@@ -422,7 +415,8 @@ class FileGDB:
 			# if rel_foreign_key not in [field.name for field in arcpy.ListFields(rel_destination_table)]:
 			# 	rel_foreign_key = rel.originClassKeys[1][0].upper()
 
-			logging.debug( " %s" % rel.name )
+			logging.debug(  rel.name )
+			logging.error( "TODO " )
 			# print " %s -> %s" % (rel_origin_table, rel_destination_table)
 			# TODO TEST
 			fc = {}
@@ -455,28 +449,43 @@ class FileGDB:
 	# Create relationship classes Set and return it to the calling routine
 	#
 	def get_relationship_classes(self):
+		logging.debug( "get_relationship_classes ..." )
+		# get featureclasses outside of datasets
+		
 
-		# # get featureclasses outside of datasets
-		# fc_list = self.standalone_features		
+		fc_list = copy.copy(self.standalone_features)	
 
-		# # get featureclasses within datasets
-		# for fds in self.datasets:
-		# 	features = self.datasets[fds] 
-		# 	fc_list.extend(features)
+		# get featureclasses within datasets
+		for fds in self.datasets:
+		 	features = self.datasets[fds] 
+		 	fc_list += copy.copy(features)
+
+		# get tables
+		fc_list += copy.copy(self.tables_list)
 
 		# create relationship classes set
 		relClasses = set()
-		for i, fc in enumerate(self.tables_list):
+		for i, fc in enumerate(fc_list):
 			#logging.debug(fc)
-			desc = arcpy.Describe(fc)
+			desc = arcpy.Describe(fc["feature"])
 			#logging.debug(desc.dataType)
-			dataType = desc.dataType
-			# ignore annotations 
-			if dataType in ('FeatureClass', 'Table'):
+			# ignore annotations
+			if desc.dataType in ('FeatureClass', 'Table'):
 				for j,rel in enumerate(desc.relationshipClassNames):
+					r = arcpy.Describe(rel)
+					rel_origin_table = r.originClassNames[0]
+					rel_destination_table = r.destinationClassNames[0]
+					logging.debug( "origin_table : {} , destination_table : {}".format(rel_origin_table,
+						 rel_destination_table) )
+
+					desc_destination = arcpy.Describe(rel_destination_table)
+					logging.debug("desc_destination.featureType: {} ".format( desc_destination.featureType) )
+					if desc_destination.featureType not in ('Simple'):
+						continue
 					relClasses.add(rel)
 
 		return relClasses
+
 
 	#-------------------------------------------------------------------------------
 	# Process Schemas
