@@ -48,7 +48,7 @@ class FileGDB:
 		self.info()
 		self.init_paths()
 		self.setenv()
-		self.parse_yaml()
+		
 		self.datasets = {} 
 		ds = self.get_feature_datasets()
 		for d in ds:
@@ -97,6 +97,7 @@ class FileGDB:
 
 	def process(self):
 		try:
+			self.parse_yaml()
 			self.open_files()
 			self.process_schemas()
 			self.process_domains()
@@ -602,6 +603,7 @@ class FileGDB:
 		out_file.write(string + "\n")
 
 	def create_yaml(self):
+		logging.debug("create_yaml...")
 		# initialize dictionaries
 		schemasdict = {}
 		fdsdict = {'FeatureDatasets': {}}
@@ -617,8 +619,9 @@ class FileGDB:
 
 		# featureclasses in root
 		fclist =[]
-		for f in self.standalone_features:
-			fclist.append(f["feature"])
+		if fdslist != self.standalone_features:
+			for f in self.standalone_features:
+				fclist.append(f["feature"])
 		fcdict['FeatureClasses'].update({'public': fclist})
 
 		# tables

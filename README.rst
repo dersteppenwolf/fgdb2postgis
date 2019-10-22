@@ -44,7 +44,14 @@ Install fgdb2postgis::
 
 Usage
 -----
-Create a yaml file mapping the file geodatabase's feature datasets, feature classes and tables to postgresql's schemas. It is required that the yaml file have the same name with the file geodatabase with the extension .yaml
+
+Generate the yml file and exit: 
+
+  fgdb2postgis -yml --fgdb sample.gdb
+
+Create a yaml file mapping the file geodatabase's feature datasets, 
+feature classes and tables to postgresql's schemas. It is required that the yaml file have the same 
+name with the file geodatabase with the extension .yaml
 
 Example::
 

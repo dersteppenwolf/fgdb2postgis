@@ -72,12 +72,12 @@ def main():
 		logging.debug(args)
 		logging.debug("Begin Program....")
 		filegdb = FileGDB(args.fgdb, args.include_empty, args.lookup_tables_schema)
-		postgis = PostGIS(args.host, args.port, args.user, args.password, args.database, args.a_srs,  args.t_srs)
-
+		
 		if(args.yml):
 			filegdb.create_yaml()
 			return
 
+		postgis = PostGIS(args.host, args.port, args.user, args.password, args.database, args.a_srs,  args.t_srs)
 		filegdb.process()
 		postgis.process(filegdb)
 		
