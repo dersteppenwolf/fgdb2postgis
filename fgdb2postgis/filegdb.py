@@ -56,6 +56,7 @@ class FileGDB:
 
 		self.tables_list = self.get_tables()
 		self.standalone_features = self.get_feature_classes(None) 
+		self.domain_tables = []
 
 		logging.debug("tables_list: {} ".format(  self.tables_list ) )
 		logging.debug("datasets: {} ".format(  self.datasets ) )
@@ -218,7 +219,8 @@ class FileGDB:
 			arcpy.DomainToTable_management(self.workspace, domain.name, domain_table, domain_field, domain_field_desc)
 
 		# create index
-		dom = { "feature":domain_table,  "type": "table"   }
+		dom = { "feature":domain_table,  "type": "table" , "schema" : self.lookup_tables_schema   }
+		self.domain_tables.append( dom ) 
 		self.create_index(domain_table, domain_field)
 		self.split_schemas(dom, self.lookup_tables_schema)
 
@@ -328,7 +330,9 @@ class FileGDB:
 
 				del cur
 
-			subt = { "feature":subtypes_table,  "type": "table"   }
+			subt = { "feature":subtypes_table,  "type": "table" , "schema" : self.lookup_tables_schema   }
+			self.domain_tables.append(subt)
+			
 			self.create_index(subtypes_table, field)
 			self.create_foreign_key_constraint(layer, field, subtypes_table, field)
 			self.split_schemas(subt, self.lookup_tables_schema)
@@ -406,13 +410,13 @@ class FileGDB:
 	#
 	def get_relationship_classes(self):
 
-		# get featureclasses outside of datasets
-		fc_list = self.standalone_features		
+		# # get featureclasses outside of datasets
+		# fc_list = self.standalone_features		
 
-		# get featureclasses within datasets
-		for fds in self.datasets:
-			features = self.datasets[fds] 
-			fc_list.extend(features)
+		# # get featureclasses within datasets
+		# for fds in self.datasets:
+		# 	features = self.datasets[fds] 
+		# 	fc_list.extend(features)
 
 		# create relationship classes set
 		relClasses = set()
@@ -464,6 +468,7 @@ class FileGDB:
 			fc_list =self.datasets[dataset] 
 			for fc in fc_list:
 				logging.debug("fc: {} , schema: {} ".format(fc, schema) )
+				fc["schema"] = schema
 				self.split_schemas(fc, schema)
 
 		# split feature classes outside of feature datasets to schemas
@@ -475,6 +480,8 @@ class FileGDB:
 
 			for fc in fcs:
 				if arcpy.Exists(fc):
+					feat = [x for x in self.standalone_features if x["feature"] == fc][0]
+					feat["schema"] = schema
 					self.split_schemas(fc, schema)
 
 		# split tables to schemas
@@ -610,7 +617,7 @@ class FileGDB:
 			if feature_type != 'Simple':
 				continue
 			
-			feat = { "feature":f, "count": count, "feature_type":feature_type, "shapeType" :shapeType , "type": "feature_class"   }
+			feat = { "feature":f, "count": count, "feature_type":feature_type, "shapeType" :shapeType , "type": "feature_class", "dataset": fds   }
 			#logging.debug(feat)
 			features.append(feat)
 

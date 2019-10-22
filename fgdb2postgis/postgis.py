@@ -95,22 +95,56 @@ class PostGIS:
 
 		logging.debug(  "Disconnected from database." )
 
+
+	def get_gdal_type(self, feature_type):
+		logging.debug(  feature_type)
+		## -nlt MULTILINESTRING
+		return "  -nlt MULTILINESTRING  "
+
+
 	def load_database(self, filegdb):
 		logging.debug(  "Loading database tables ...")
 
-		cmd = 'ogr2ogr -f "PostgreSQL" "PG:%s" 	-overwrite -progress -skipfailures -append \
-			-a_srs %s 	-t_srs %s 	-lco launder=yes  -lco fid=id  \
-			-lco geometry_name=geom -lco OVERWRITE=YES  \
-			--config OGR_TRUNCATE YES 	--config PG_USE_COPY YES \
-			%s' % (self.conn_string, self.a_srs, self.t_srs, filegdb.workspace)
+		gdal_cmd = 'ogr2ogr -f "PostgreSQL" "PG:{}"  {}  {}   -overwrite -progress -skipfailures -append \
+			-a_srs {} 	-t_srs {} 	-lco launder=yes  -lco fid=id  	-lco GEOMETRY_NAME=geom -lco OVERWRITE=YES  \
+			--config OGR_TRUNCATE YES -nln {} -lco SCHEMA={} --config PG_USE_COPY YES {}  '
 
-		# ogr2ogr   "G:/500k_24_04_2016.gdb"  Administrativo_P  
-		#     -lco SCHEMA=cartografia_500k   \
-		# -nlt  POINT -nln  administrativo_p
 		
-		logging.debug( cmd)
 
-		system(cmd)
+		commands = []
+
+		for domain in filegdb.domain_tables:
+			#logging.debug( domain)
+			c = gdal_cmd.format(  self.conn_string, filegdb.workspace, domain["feature"], self.a_srs, self.t_srs, domain["feature"].lower(), 
+				domain["schema"] , ""  )
+			commands.append(c)
+
+		for feat in filegdb.standalone_features:
+			logging.debug( feat)
+		
+		#logging.debug( filegdb.datasets )
+		datasets = filegdb.datasets
+		for d  in datasets:
+			logging.debug( d )
+			features = datasets[d] 
+			for feat in features:
+				logging.debug( feat)
+				c = gdal_cmd.format(  self.conn_string, filegdb.workspace, feat["feature"], self.a_srs, self.t_srs, feat["feature"].lower(), 
+					feat["schema"], self.get_gdal_type( feat["feature_type"] )  )
+				commands.append(c)
+
+		for cmd in commands:
+			logging.debug(cmd)
+			system(cmd)
+
+
+		# cmd = 'ogr2ogr -f "PostgreSQL" "PG:%s" 	-overwrite -progress -skipfailures -append \
+		# 	-a_srs %s 	-t_srs %s 	-lco launder=yes  -lco fid=id  \
+		# 	-lco geometry_name=geom -lco OVERWRITE=YES  \
+		# 	--config OGR_TRUNCATE YES 	--config PG_USE_COPY YES \
+		# 	%s' % (self.conn_string, self.a_srs, self.t_srs, filegdb.workspace)
+		# logging.debug( cmd)
+		# system(cmd)
 
 	def update_views(self):
 		
