@@ -4,6 +4,7 @@ File Geodatabase to PostGIS converter (fgdb2postgis)
 The aim of this tool is to convert an ESRI file Geodatabase to a PostGIS database maintaining data, domains, subtypes and relationships.
 The tool will copy over the feature classes as postgis layers and the tables as standard tables. The domains and subtypes will be converted to PostgreSQL lookup tables.
 The tool will then create all necessary indexes and constraints to maintain the required relates between the layers, tables and lookup tables.
+The tool creates materialized views of the tables including descriptions of the lookup tables suitable for the web publishing using  Geoserver.
 To recreate the same experience of the domains and subtypes in QGIS using the output data, please install the plugin `Data Manager <https://github.com/cartologic/qgis-datamanager-plugin>`_.
 Now you can have domain experience in QGIS that is stored in the database and not in the QGIS project.
 
@@ -15,14 +16,7 @@ Installation
 This package should be installed only on windows systems because of ArcGIS (Arcpy) limitation.
 
 
-ArcGIS Desktop and Numpy compability (see https://support.esri.com/en/technical-article/000013224): 
 
-*  10.7.1 - Python 2.7.16 and NumPy 1.9.3
-*  10.7 - Python 2.7.15 and NumPy 1.9.3
-*  10.6.1 - Python 2.7.14 and NumPy 1.9.3
-*  10.6 - Python 2.7.14 and NumPy 1.9.3
-*  10.5.1 - Python 2.7.13 and NumPy 1.9.3
-*  10.5 - Python 2.7.12 and NumPy 1.9.3
 
 Install required packages::
 
@@ -138,6 +132,13 @@ Warning:
   * DO NOT apply this tool in a production postgis database!, insted use a staging database
   * The target postgis database is created by te program
   * The tool only includes Simple features (Polygons, polylines, and points representing objects or places that have area. See https://desktop.arcgis.com/es/arcmap/latest/analyze/arcpy-functions/featureclass-properties.htm  ) 
+  * If you do not use the python distribution included in Arcgis Desktop you must have into account the  ArcGIS Desktop and Numpy compability (see https://support.esri.com/en/technical-article/000013224): 
+    *  10.7.1 - Python 2.7.16 and NumPy 1.9.3
+    *  10.7 - Python 2.7.15 and NumPy 1.9.3
+    *  10.6.1 - Python 2.7.14 and NumPy 1.9.3
+    *  10.6 - Python 2.7.14 and NumPy 1.9.3
+    *  10.5.1 - Python 2.7.13 and NumPy 1.9.3
+    *  10.5 - Python 2.7.12 and NumPy 1.9.3
 
 
 Credits
