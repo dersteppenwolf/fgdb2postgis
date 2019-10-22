@@ -96,10 +96,25 @@ class PostGIS:
 		logging.debug(  "Disconnected from database." )
 
 
-	def get_gdal_type(self, feature_type):
-		logging.debug(  feature_type)
-		## -nlt MULTILINESTRING
-		return "  -nlt MULTILINESTRING  "
+	'''
+	Sometimes the automatic detection of geometry type doesn't work or it is needed
+	to force a specific type (non 3d)
+	https://gdal.org/programs/ogr2ogr.html#cmdoption-ogr2ogr-nlt
+	'''
+	def get_gdal_type(self, feat):
+		shapeType = feat["shapeType"] 
+		logging.debug(  shapeType)
+		gdal_type = ""
+		if shapeType == 'Polygon':
+			gdal_type = "MULTIPOLYGON"
+		elif shapeType == 'Polyline':
+			gdal_type = "MULTILINESTRING"
+		elif shapeType == 'Point':
+			gdal_type = "POINT"
+		elif shapeType == 'Multipoint':
+			gdal_type = "MULTILINESTRING"
+
+		return "  -nlt  {}  ".format(gdal_type)
 
 
 	def load_database(self, filegdb):
@@ -130,7 +145,7 @@ class PostGIS:
 			for feat in features:
 				logging.debug( feat)
 				c = gdal_cmd.format(  self.conn_string, filegdb.workspace, feat["feature"], self.a_srs, self.t_srs, feat["feature"].lower(), 
-					feat["schema"], self.get_gdal_type( feat["feature_type"] )  )
+					feat["schema"], self.get_gdal_type( feat )  )
 				commands.append(c)
 
 		for cmd in commands:

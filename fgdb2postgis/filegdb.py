@@ -222,7 +222,7 @@ class FileGDB:
 		dom = { "feature":domain_table,  "type": "table" , "schema" : self.lookup_tables_schema   }
 		self.domain_tables.append( dom ) 
 		self.create_index(domain_table, domain_field)
-		self.split_schemas(dom, self.lookup_tables_schema)
+		#self.split_schemas(dom, self.lookup_tables_schema)
 
 	#-------------------------------------------------------------------------------
 	# Create foraign key constraints to tables referencing domain tables
@@ -335,7 +335,7 @@ class FileGDB:
 			
 			self.create_index(subtypes_table, field)
 			self.create_foreign_key_constraint(layer, field, subtypes_table, field)
-			self.split_schemas(subt, self.lookup_tables_schema)
+			#self.split_schemas(subt, self.lookup_tables_schema)
 
 
 	#-------------------------------------------------------------------------------
@@ -469,7 +469,7 @@ class FileGDB:
 			for fc in fc_list:
 				logging.debug("fc: {} , schema: {} ".format(fc, schema) )
 				fc["schema"] = schema
-				self.split_schemas(fc, schema)
+				#self.split_schemas(fc, schema)
 
 		# split feature classes outside of feature datasets to schemas
 		self.write_it(self.f_split_schemas, "\n-- FeatureClasses:")
@@ -482,27 +482,27 @@ class FileGDB:
 				if arcpy.Exists(fc):
 					feat = [x for x in self.standalone_features if x["feature"] == fc][0]
 					feat["schema"] = schema
-					self.split_schemas(fc, schema)
+					#self.split_schemas(fc, schema)
 
 		# split tables to schemas
-		self.write_it(self.f_split_schemas, "\n-- Tables:")
-		logging.debug( " Tables" )
-		for schema, tables in self.tables.items():
-			if schema == 'public':
-				continue
+		# self.write_it(self.f_split_schemas, "\n-- Tables:")
+		# logging.debug( " Tables" )
+		# for schema, tables in self.tables.items():
+		# 	if schema == 'public':
+		# 		continue
 
-			for table in tables:
-				if arcpy.Exists(table):
-					self.split_schemas(table, schema)
+		# 	for table in tables:
+		# 		if arcpy.Exists(table):
+		# 			self.split_schemas(table, schema)
 
 	#-------------------------------------------------------------------------------
 	# Compose and write sql to alter the schema of a table
 	#
-	def split_schemas(self, fc, schema):
-		logging.debug(fc)
-		table = fc["feature"]
-		str_split_schemas = "ALTER TABLE \"%s\" SET SCHEMA \"%s\";" % (table.lower(), schema.lower())
-		self.write_it(self.f_split_schemas, str_split_schemas)
+	# def split_schemas(self, fc, schema):
+	# 	logging.debug(fc)
+	# 	table = fc["feature"]
+	# 	str_split_schemas = "ALTER TABLE \"%s\" SET SCHEMA \"%s\";" % (table.lower(), schema.lower())
+	# 	self.write_it(self.f_split_schemas, str_split_schemas)
 
 	#-------------------------------------------------------------------------------
 	# Create indexes
