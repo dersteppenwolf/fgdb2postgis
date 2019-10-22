@@ -218,8 +218,9 @@ class FileGDB:
 			arcpy.DomainToTable_management(self.workspace, domain.name, domain_table, domain_field, domain_field_desc)
 
 		# create index
+		dom = { "feature":domain_table,  "type": "table"   }
 		self.create_index(domain_table, domain_field)
-		self.split_schemas(domain_table, self.lookup_tables_schema)
+		self.split_schemas(dom, self.lookup_tables_schema)
 
 	#-------------------------------------------------------------------------------
 	# Create foraign key constraints to tables referencing domain tables
@@ -268,7 +269,7 @@ class FileGDB:
 
 		# create subtypes table for tables
 		for table in self.tables_list:
-			self.create_subtypes_table(table)
+			self.create_subtypes_table(  { "feature":table,  "type": "table"   }   )
 
 		# create subtypes table for stand-alone featureclasses
 		for fc in self.standalone_features:
@@ -284,6 +285,7 @@ class FileGDB:
 	# Create subtypes table for layer/field and insert records (list of values)
 	#
 	def create_subtypes_table(self, fc):
+		logging.debug("create_subtypes_table : {}".format(fc) )
 		layer = fc["feature"]
 		subtypes_dict = arcpy.da.ListSubtypes(layer)
 
@@ -326,9 +328,10 @@ class FileGDB:
 
 				del cur
 
+			subt = { "feature":subtypes_table,  "type": "table"   }
 			self.create_index(subtypes_table, field)
 			self.create_foreign_key_constraint(layer, field, subtypes_table, field)
-			self.split_schemas(subtypes_table, self.lookup_tables_schema)
+			self.split_schemas(subt, self.lookup_tables_schema)
 
 
 	#-------------------------------------------------------------------------------
@@ -489,6 +492,7 @@ class FileGDB:
 	# Compose and write sql to alter the schema of a table
 	#
 	def split_schemas(self, fc, schema):
+		logging.debug(fc)
 		table = fc["feature"]
 		str_split_schemas = "ALTER TABLE \"%s\" SET SCHEMA \"%s\";" % (table.lower(), schema.lower())
 		self.write_it(self.f_split_schemas, str_split_schemas)
