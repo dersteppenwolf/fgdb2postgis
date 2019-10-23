@@ -577,18 +577,18 @@ class FileGDB:
 		schema = fc["schema"]
 		table_details =  fc["feature"]
 		logging.debug( "create_foreign_key_constraint:   {} ".format(table_details))
-
+		fkey = fkey.strip().lower()
 		fkey_name = ( "%s_%s_%s_fkey" % (table_details, fkey, table_master) ).lower()
 		logging.debug( "fkey_name:  {} ".format(fkey_name))
 
 		if fkey_name not in self.constraints:
 			self.constraints.append(fkey_name)
 			str_constraint = 'ALTER TABLE {}.{} ADD CONSTRAINT {} FOREIGN KEY ({}) REFERENCES {}.{} ({}) NOT VALID; \n'
-			str_constraint = str_constraint.format(schema, table_details.lower(), fkey_name, fkey.lower(),
+			str_constraint = str_constraint.format(schema, table_details.lower(), fkey_name, fkey,
 					self.lookup_tables_schema,  table_master.lower(), pkey.lower())
 			self.write_it(self.f_create_constraints, str_constraint)
 
-			fc["foreign_keys"].append( { "field": fkey.lower(), 
+			fc["foreign_keys"].append( { "field": fkey, 
 				"parent_table" :  self.lookup_tables_schema+"."+table_master.lower(),
 				"pkey" : pkey.lower()   }  )
 			
