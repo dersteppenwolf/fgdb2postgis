@@ -574,14 +574,16 @@ class FileGDB:
 	# Create foreign key constraints
 	#
 	def create_foreign_key_constraint(self, fc, fkey, table_master, pkey):
+		logging.debug( "**Feature:{}**".format(fc["feature"]))
 		schema = fc["schema"]
-		table_details =  fc["feature"]
+		table_details =  fc["feature"].lower()
 		logging.debug( "create_foreign_key_constraint:   {} ".format(table_details))
-		table_master = table_master.strip().lower()
+		table_master = table_master.strip().lower().replace(" ", "_")
 		pkey = pkey.strip().lower()
 		fkey = fkey.strip().lower()
-		fkey_name = ( "%s_%s_%s_fkey" % (table_details, fkey, table_master) ).lower()
-		logging.debug( "fkey_name:  {} ".format(fkey_name))
+		fkey_name =  "{}_{}_{}_fkey".format(table_details, fkey, table_master) 
+		logging.debug( "**table_master:{}**".format(table_master))
+		logging.debug( "**fkey_name:{}**".format(fkey_name))
 
 		if fkey_name not in self.constraints:
 			self.constraints.append(fkey_name)
