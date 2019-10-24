@@ -59,6 +59,38 @@ __Note:__
 ## Usage
 
 
+```bash
+
+usage: fgdb2postgis [-h] [-v] [-yml] [--fgdb [FGDB]] [--database [DATABASE]]
+                    [--host [HOST]] [--port [PORT]] [--user [USER]]
+                    [--password [PASSWORD]] [--include_empty [INCLUDE_EMPTY]]
+                    [--lookup_tables_schema [LOOKUP_TABLES_SCHEMA]]
+                    [--a_srs [A_SRS]] [--t_srs [T_SRS]]
+
+Convert a Filegeodatabase to Postgis.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --version         Program version
+  -yml, --yml           Create .yml and exit
+  --fgdb [FGDB]         Name of the filegeodatabase for conversion
+  --database [DATABASE]
+                        Name of the postgis database to be created for
+                        conversion
+  --host [HOST]         Database host
+  --port [PORT]         Postgresql port
+  --user [USER]         database user
+  --password [PASSWORD]
+                        database password
+  --include_empty [INCLUDE_EMPTY]
+                        Include empty tables and features. Default False
+  --lookup_tables_schema [LOOKUP_TABLES_SCHEMA]
+                        Name of the schema for lookup tables.
+                        Default:lookup_tables
+  --a_srs [A_SRS]       Assign an output SRS.
+  --t_srs [T_SRS]       Reproject/transform to this SRS on output.
+```
+
 Command line options::
 
 Show help: 

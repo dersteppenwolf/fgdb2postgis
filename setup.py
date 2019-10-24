@@ -4,7 +4,7 @@ setup(
     name='fgdb2postgis',
     version=__import__('fgdb2postgis').get_current_version(),
     description="""ESRI file geodatabase to PostGIS converter""",
-    long_description=open('README.rst').read(),
+    long_description=open('Readme.md').read(),
     author='George Ioannou',
     author_email='gmioannou@cartologic.com',
     url='https://github.com/cartologic/fgdb2postgis',
