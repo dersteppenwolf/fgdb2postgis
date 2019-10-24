@@ -368,7 +368,7 @@ class FileGDB:
 		for fk in fc["foreign_keys"]:
 			fk_alias = "ft"+str(counter)
 			sql_select += " , {}.description as {}_label ".format(fk_alias, fk["field"])
-			sql_from += " inner join {} as {} on ( t.{} = {}.{} ) ".format(fk["parent_table"],
+			sql_from += " left join {} as {} on ( t.{} = {}.{} ) ".format(fk["parent_table"],
 				 fk_alias, fk["field"], fk_alias, fk["pkey"]  )
 			#{'field': u'ruleid', 'pkey': 'code', 'parent_table': u'cartografia_100k.lut_limite_via_rep_rules'}
 			counter += 1
@@ -577,6 +577,8 @@ class FileGDB:
 		schema = fc["schema"]
 		table_details =  fc["feature"]
 		logging.debug( "create_foreign_key_constraint:   {} ".format(table_details))
+		table_master = = table_master.strip().lower()
+		pkey = pkey.strip().lower()
 		fkey = fkey.strip().lower()
 		fkey_name = ( "%s_%s_%s_fkey" % (table_details, fkey, table_master) ).lower()
 		logging.debug( "fkey_name:  {} ".format(fkey_name))
@@ -585,12 +587,11 @@ class FileGDB:
 			self.constraints.append(fkey_name)
 			str_constraint = 'ALTER TABLE {}.{} ADD CONSTRAINT {} FOREIGN KEY ({}) REFERENCES {}.{} ({}) NOT VALID; \n'
 			str_constraint = str_constraint.format(schema, table_details.lower(), fkey_name, fkey,
-					self.lookup_tables_schema,  table_master.lower(), pkey.lower())
+					self.lookup_tables_schema,  table_master, pkey)
 			self.write_it(self.f_create_constraints, str_constraint)
 
 			fc["foreign_keys"].append( { "field": fkey, 
-				"parent_table" :  self.lookup_tables_schema+"."+table_master.lower(),
-				"pkey" : pkey.lower()   }  )
+				"parent_table" :  self.lookup_tables_schema+"."+table_master,	"pkey" : pkey  }  )
 			
 
 	#-------------------------------------------------------------------------------
