@@ -577,7 +577,7 @@ class FileGDB:
 		schema = fc["schema"]
 		table_details =  fc["feature"]
 		logging.debug( "create_foreign_key_constraint:   {} ".format(table_details))
-		table_master = = table_master.strip().lower()
+		table_master = table_master.strip().lower()
 		pkey = pkey.strip().lower()
 		fkey = fkey.strip().lower()
 		fkey_name = ( "%s_%s_%s_fkey" % (table_details, fkey, table_master) ).lower()
