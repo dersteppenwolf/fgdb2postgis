@@ -14,7 +14,7 @@ from .postgis import PostGIS
 from .version import get_version
 
 def show_version():
-	print "Version: %s"%(get_version()) 
+	print ( "Version: {}".format(get_version())  )
 	sys.exit(1)
 
 def printError(e):
