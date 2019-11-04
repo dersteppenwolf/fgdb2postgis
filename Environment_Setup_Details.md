@@ -9,7 +9,9 @@ Start Button > Right Click Properties >Advanced system settings > Advanced Tab >
 Look for a variable called path, if if is there edit, if not new:
 
 Variable Name: path
-Variable Value: C:\Python27\ArcGIS10.3\Scripts;C:\Python27\ArcGIS10.3
+Variable Value: (separated by ; if on windows 7, new entry on windows 10)
+C:\Python27\ArcGIS10.3\Scripts
+C:\Python27\ArcGIS10.3
 
 Open comand promt (cmd)
 
