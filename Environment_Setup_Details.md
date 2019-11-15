@@ -1,9 +1,5 @@
 # A Guide To Translating FGDB Schema To PG
 
-## fgdb2postgis Fork Source
-[fgdb2postgis](https://github.com/dersteppenwolf/fgdb2postgis)
-Note that this project has been forked to The Lorrnel Group from the latest maintained version.
-
 ### Set Paths
 Start Button > Right Click Properties >Advanced system settings > Advanced Tab > Environemnt Variables > user varibales >
 Look for a variable called path, if if is there edit, if not new:
