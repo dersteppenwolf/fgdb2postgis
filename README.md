@@ -201,6 +201,7 @@ __Warnings:__
   * The tool only includes Simple features (Polygons, polylines, and points representing objects or places. See https://desktop.arcgis.com/es/arcmap/latest/analyze/arcpy-functions/featureclass-properties.htm  ) 
   
   * At this moment only the following geometry type conversions are supported:
+  
 |  Esri Type |    GDAL Type    |
 |:----------:|:---------------:|
 | Polygon    | MULTIPOLYGON    |
