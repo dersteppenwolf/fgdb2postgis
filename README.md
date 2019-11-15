@@ -194,9 +194,20 @@ __Tips:__
 
 __Warnings:__
 
-  * DO NOT apply this tool in a production postgis database!, insted use a staging database
-  * The target postgis database is created by te program
-  * The tool only includes Simple features (Polygons, polylines, and points representing objects or places that have area. See https://desktop.arcgis.com/es/arcmap/latest/analyze/arcpy-functions/featureclass-properties.htm  ) 
+  * DO NOT apply this tool in a production postgis database!.  Insted use a staging database.
+  
+  * The target postgis database is created by the program
+  
+  * The tool only includes Simple features (Polygons, polylines, and points representing objects or places. See https://desktop.arcgis.com/es/arcmap/latest/analyze/arcpy-functions/featureclass-properties.htm  ) 
+  
+  * At this moment only the following geometry type conversions are supported:
+|  Esri Type |    GDAL Type    |
+|:----------:|:---------------:|
+| Polygon    | MULTIPOLYGON    |
+| Polyline   | MULTILINESTRING |
+| Point      | POINT           |
+| Multipoint | MULTIPOINT      |
+  
   * If you do not use the python distribution included in Arcgis Desktop you must have into account the  ArcGIS Desktop and Numpy compability (see https://support.esri.com/en/technical-article/000013224): 
 
       *  10.7.1 - Python 2.7.16 and NumPy 1.9.3
